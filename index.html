@@ -26,6 +26,34 @@
         .card-shadow:hover { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
         .gradient-bg { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); }
         
+        /* 统一按钮样式 - 主要按钮 */
+        .btn-primary { background: #dc2626; color: white; font-weight: 700; border-radius: 0.5rem; transition: background-color 0.2s; padding: 0.75rem 1rem; border: none; cursor: pointer; }
+        .btn-primary:hover { background: #b91c1c; }
+        .btn-primary:disabled { background: #9ca3af; cursor: not-allowed; }
+        
+        .btn-secondary { background: #d1d5db; color: #374151; font-weight: 500; border-radius: 0.5rem; transition: background-color 0.2s; padding: 0.5rem 1rem; border: none; cursor: pointer; }
+        .btn-secondary:hover { background: #9ca3af; }
+        
+        .btn-success { background: #16a34a; color: white; font-weight: 500; border-radius: 0.5rem; transition: background-color 0.2s; padding: 0.5rem 1rem; border: none; cursor: pointer; }
+        .btn-success:hover { background: #15803d; }
+        
+        .btn-danger { background: #ef4444; color: white; font-weight: 500; border-radius: 0.5rem; transition: background-color 0.2s; padding: 0.5rem 1rem; border: none; cursor: pointer; }
+        .btn-danger:hover { background: #dc2626; }
+        
+        .btn-outline { background: transparent; color: #374151; font-weight: 500; border-radius: 0.5rem; transition: all 0.2s; padding: 0.5rem 1rem; border: 1px solid #d1d5db; cursor: pointer; }
+        .btn-outline:hover { background: #f9fafb; }
+        
+        /* 统一输入框样式 */
+        .input-field { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; transition: all 0.2s; }
+        .input-field:focus { outline: none; border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1); }
+        
+        /* 统一模态框样式 */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+        .modal-content { background: white; border-radius: 0.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); width: 100%; max-width: 32rem; max-height: 90vh; display: flex; flex-direction: column; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem; border-bottom: 1px solid #e5e7eb; }
+        .modal-body { flex: 1; overflow-y: auto; padding: 1.25rem; }
+        .modal-footer { padding: 1.25rem; border-top: 1px solid #e5e7eb; display: flex; gap: 0.75rem; }
+        
         /* 全局字体增强样式 */
         * { font-weight: 600 !important; }
         body { font-size: 16px !important; font-weight: 600 !important; }
@@ -263,7 +291,13 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                       </div>
                       {cart.length > 0 && (
                         <div className="fixed bottom-6 right-6 z-40">
-                          <button onClick={() => setIsCartOpen(true)} className="gradient-bg text-white rounded-full p-4 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-110 flex items-center gap-3 group">
+                          <button 
+                            onClick={() => { 
+                              refreshCartStock(); 
+                              setIsCartOpen(true); 
+                            }} 
+                            className="gradient-bg text-white rounded-full p-4 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-110 flex items-center gap-3 group"
+                          >
                             <div className="relative">
                               <i className="fas fa-shopping-cart text-2xl group-hover:animate-bounce"></i>
                               <span className="absolute -top-2 -right-2 bg-yellow-400 text-black text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center animate-pulse">
@@ -285,7 +319,11 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                         totalPrice={cartTotal}
                         totalItems={totalItems}
                         onClose={() => setIsCartOpen(false)} 
-                        onCheckout={() => { setIsCartOpen(false); setIsCheckoutOpen(true); }} 
+                        onCheckout={() => { 
+                          refreshCartStock(); 
+                          setIsCartOpen(false); 
+                          setIsCheckoutOpen(true); 
+                        }} 
                       />
                       {isCheckoutOpen && <CheckoutModal cart={cart} total={cartTotal} onClose={() => setIsCheckoutOpen(false)} onConfirm={(data) => { setOrderData(data); setIsCheckoutOpen(false); setIsConfirmOpen(true); }} showToast={showToast} />}
                       {isConfirmOpen && <ConfirmationModal orderData={orderData} onConfirm={handleOrderSuccess} onCancel={() => { setIsConfirmOpen(false); setIsCheckoutOpen(true); }} showToast={showToast} />}
@@ -423,6 +461,11 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                                       <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
                                         {item.is_unlimited ? '预购' : '现货'}
                                       </span>
+                                      {!item.is_unlimited && (
+                                        <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                          库存: {item.stock_quantity || 0}
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
                                   <div className="flex flex-col items-end gap-2">
@@ -436,9 +479,14 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                                       <span className="w-8 text-center font-medium text-gray-800">{item.quantity}</span>
                                       <button
                                         onClick={() => handleQuantityChange(item, item.quantity + 1)}
-                                        className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 hover:text-red-600 transition-colors"
+                                        disabled={!item.is_unlimited && item.quantity >= (item.stock_quantity || 0)}
+                                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs transition-colors ${
+                                          !item.is_unlimited && item.quantity >= (item.stock_quantity || 0)
+                                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                            : 'bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-red-600'
+                                        }`}
                                       >
-                                        <i className="fas fa-plus text-xs"></i>
+                                        <i className="fas fa-plus"></i>
                                       </button>
                                     </div>
                                     <button
@@ -498,6 +546,10 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                   if (!formData.phone || !/^(\+?6?01)[0-46-9]-?[0-9]{7,8}$/.test(formData.phone)) newErrors.phone = '请输入有效的电话号码';
                   if (!formData.delivery) newErrors.delivery = '请选择取货方式';
                   if (!formData.paymentMethod) newErrors.paymentMethod = '请选择付款方式';
+                  // Lalamove delivery requires address in remarks field
+                  if (formData.delivery === 'lalamove' && (!formData.remarks || formData.remarks.trim() === '')) {
+                    newErrors.remarks = 'Lalamove配送时备注栏不能为空，请填写配送地址';
+                  }
                   if ((formData.paymentMethod === 'Maybank QR' || formData.paymentMethod === 'TNG eWallet') && !paymentProof) newErrors.paymentProof = '请上传支付凭证';
                   setErrors(newErrors);
                   return Object.keys(newErrors).length === 0;
@@ -526,27 +578,27 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                   }
                 };
                 return (
-                  <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-                      <div className="flex justify-between items-center p-5 border-b">
+                  <div className="modal-overlay">
+                    <div className="modal-content max-w-2xl">
+                      <div className="modal-header">
                         <h2 className="text-xl font-bold">结账</h2>
                         <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
                       </div>
-                      <div className="flex-1 overflow-y-auto p-5">
+                      <div className="modal-body">
                         <form onSubmit={handleNextStep} className="space-y-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">姓名 *</label>
-                            <input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="请输入您的姓名" />
+                            <input type="text" name="name" value={formData.name} onChange={handleChange} className="input-field" placeholder="请输入您的姓名" />
                             {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">电话号码 *</label>
-                            <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="例如: 0123456789" />
+                            <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="input-field" placeholder="例如: 0123456789" />
                             {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">取货方式 *</label>
-                            <select name="delivery" value={formData.delivery} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                            <select name="delivery" value={formData.delivery} onChange={handleChange} className="input-field">
                               <option value="">请选择取货方式</option>
                               <option value="self-pickup">自取</option>
                               <option value="lalamove">Lalamove送货</option>
@@ -555,7 +607,7 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">付款方式 *</label>
-                            <select name="paymentMethod" value={formData.paymentMethod} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                            <select name="paymentMethod" value={formData.paymentMethod} onChange={handleChange} className="input-field">
                               <option value="">请选择付款方式</option>
                               <option value="Maybank QR">Maybank QR</option>
                               <option value="TNG eWallet">TNG eWallet</option>
@@ -585,15 +637,38 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                               </div>
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">上传支付凭证 *</label>
-                                <input type="file" onChange={handleFileChange} accept="image/*,.pdf" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" />
+                                <input type="file" onChange={handleFileChange} accept="image/*,.pdf" className="input-field" />
                                 {fileName && <p className="text-green-600 text-xs mt-1">已选择: {fileName}</p>}
                                 {errors.paymentProof && <p className="text-red-500 text-xs mt-1">{errors.paymentProof}</p>}
                               </div>
                             </>
                           )}
+                          
+                          {/* Self-pickup address display */}
+                          {formData.delivery === 'self-pickup' && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">自取地址</label>
+                              <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
+                                {SELF_PICKUP_ADDRESS}
+                              </div>
+                              <p className="text-gray-500 text-xs mt-1">自取地址为只读，无需填写</p>
+                            </div>
+                          )}
+                          
+                          {/* Remarks field - required for Lalamove, optional for self-pickup */}
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">备注</label>
-                            <textarea name="remarks" value={formData.remarks} onChange={handleChange} rows="3" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="如有特殊要求，请在此说明"></textarea>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              备注 {formData.delivery === 'lalamove' && <span className="text-red-500">*</span>}
+                            </label>
+                            <textarea 
+                              name="remarks" 
+                              value={formData.remarks} 
+                              onChange={handleChange} 
+                              rows="3" 
+                              className="input-field" 
+                              placeholder={formData.delivery === 'lalamove' ? '请在此填写配送地址（必填）' : '如有特殊要求，请在此说明'}
+                            />
+                            {errors.remarks && <p className="text-red-500 text-xs mt-1">{errors.remarks}</p>}
                           </div>
                           <div className="flex items-start gap-2">
                             <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-1" />
@@ -604,14 +679,16 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                           {errors.agree && <p className="text-red-500 text-xs">{errors.agree}</p>}
                         </form>
                       </div>
-                      <div className="p-5 border-t">
-                        <div className="flex justify-between items-center mb-4">
-                          <span className="text-lg font-medium">订单总计:</span>
-                          <span className="text-2xl font-bold text-red-600">RM{total.toFixed(2)}</span>
+                      <div className="modal-footer">
+                        <div className="w-full">
+                          <div className="flex justify-between items-center mb-4">
+                            <span className="text-lg font-medium">订单总计:</span>
+                            <span className="text-2xl font-bold text-red-600">RM{total.toFixed(2)}</span>
+                          </div>
+                          <button onClick={handleNextStep} className="btn-primary w-full py-3">
+                            确认订单
+                          </button>
                         </div>
-                        <button onClick={handleNextStep} className="w-full bg-red-600 text-white font-bold py-3 rounded-lg hover:bg-red-700 transition-colors">
-                          确认订单
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -649,6 +726,26 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                   setIsSubmitting(true);
                   try {
                     const { paymentProof, cart, total, ...formData } = orderData;
+                    
+                    // Validate stock availability before submitting order
+                    for (const item of cart) {
+                      if (!item.is_unlimited) {
+                        const { data: productData, error: productError } = await supabaseClient
+                          .from('products')
+                          .select('stock_quantity')
+                          .eq('id', item.id)
+                          .single();
+                          
+                        if (productError) {
+                          throw new Error(`获取商品库存失败: ${productError.message}`);
+                        }
+                        
+                        const currentStock = productData.stock_quantity ?? 0;
+                        if (item.quantity > currentStock) {
+                          throw new Error(`商品"${item.name}"库存不足，当前库存：${currentStock}件，订单需要：${item.quantity}件`);
+                        }
+                      }
+                    }
                     
                     // 生成新格式的订单号
                     const orderId = await generateOrderId();
@@ -702,13 +799,13 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                   }
                 };
                 return (
-                  <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
-                    <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-                      <div className="flex justify-between items-center p-5 border-b">
+                  <div className="modal-overlay">
+                    <div className="modal-content max-w-2xl">
+                      <div className="modal-header">
                         <h2 className="text-xl font-bold">确认订单</h2>
                         <button onClick={onCancel} disabled={isSubmitting} className="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
                       </div>
-                      <div className="flex-1 overflow-y-auto p-5">
+                      <div className="modal-body">
                         <div className="space-y-4">
                           <div>
                             <h3 className="font-medium text-gray-800 mb-2">客户信息</h3>
@@ -733,11 +830,11 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                           </div>
                         </div>
                       </div>
-                      <div className="p-5 border-t flex gap-3">
-                        <button onClick={onCancel} disabled={isSubmitting} className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400">
+                      <div className="modal-footer">
+                        <button onClick={onCancel} disabled={isSubmitting} className="btn-secondary">
                           返回修改
                         </button>
-                        <button onClick={handleSubmit} disabled={isSubmitting} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400">
+                        <button onClick={handleSubmit} disabled={isSubmitting} className="btn-primary">
                           {isSubmitting ? '提交中...' : '确认并提交'}
                         </button>
                       </div>
@@ -3074,9 +3171,29 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                 }, [fetchProducts]);
                 
                 const addToCart = (product) => {
+                  // Check stock availability for non-preorder items (现货商品)
+                  if (!product.is_unlimited) {
+                    const availableStock = product.stock_quantity ?? 0;
+                    const currentInCart = cart.find(item => item.id === product.id)?.quantity ?? 0;
+                    
+                    if (availableStock <= 0) {
+                      showToast('商品已售罄', 'danger');
+                      return;
+                    }
+                    
+                    if (currentInCart >= availableStock) {
+                      showToast(`库存不足，仅剩${availableStock}件`, 'danger');
+                      return;
+                    }
+                  }
+                  
                   setCart(prevCart => {
                     const existingItem = prevCart.find(item => item.id === product.id);
                     if (existingItem) {
+                      // Double-check stock limit before updating
+                      if (!product.is_unlimited && existingItem.quantity >= (product.stock_quantity ?? 0)) {
+                        return prevCart; // Don't update if would exceed stock
+                      }
                       return prevCart.map(item =>
                         item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
                       );
@@ -3090,18 +3207,72 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                 const updateCartQuantity = (productId, newQuantity) => {
                   if (newQuantity <= 0) {
                     setCart(prevCart => prevCart.filter(item => item.id !== productId));
-                  } else {
-                    setCart(prevCart =>
-                      prevCart.map(item =>
-                        item.id === productId ? { ...item, quantity: newQuantity } : item
-                      )
-                    );
+                    return;
                   }
+                  
+                  setCart(prevCart =>
+                    prevCart.map(item => {
+                      if (item.id === productId) {
+                        // Validate stock for non-preorder items (现货商品)
+                        if (!item.is_unlimited) {
+                          const availableStock = item.stock_quantity ?? 0;
+                          if (newQuantity > availableStock) {
+                            // Auto-adjust to maximum available stock
+                            showToast(`数量已调整为库存上限：${availableStock}件`, 'warning');
+                            return { ...item, quantity: availableStock };
+                          }
+                        }
+                        return { ...item, quantity: newQuantity };
+                      }
+                      return item;
+                    })
+                  );
                 };
                 
                 const removeFromCart = (productId) => {
                   setCart(prevCart => prevCart.filter(item => item.id !== productId));
                 };
+                
+                // Function to refresh cart items with current stock data
+                const refreshCartStock = useCallback(async () => {
+                  if (cart.length === 0) return;
+                  
+                  try {
+                    const productIds = cart.map(item => item.id);
+                    const { data: currentProducts, error } = await supabaseClient
+                      .from('products')
+                      .select('id, stock_quantity, is_unlimited')
+                      .in('id', productIds);
+                    
+                    if (error) {
+                      console.error('刷新购物车库存失败:', error);
+                      return;
+                    }
+                    
+                    setCart(prevCart => prevCart.map(cartItem => {
+                      const currentProduct = currentProducts.find(p => p.id === cartItem.id);
+                      if (currentProduct) {
+                        const updatedItem = { 
+                          ...cartItem, 
+                          stock_quantity: currentProduct.stock_quantity,
+                          is_unlimited: currentProduct.is_unlimited
+                        };
+                        
+                        // Auto-adjust quantity if it exceeds current stock for non-preorder items
+                        if (!currentProduct.is_unlimited && cartItem.quantity > (currentProduct.stock_quantity || 0)) {
+                          const maxStock = Math.max(0, currentProduct.stock_quantity || 0);
+                          showToast(`商品"${cartItem.name}"库存变化，数量已调整为${maxStock}件`, 'warning');
+                          return { ...updatedItem, quantity: maxStock };
+                        }
+                        
+                        return updatedItem;
+                      }
+                      return cartItem;
+                    }));
+                  } catch (error) {
+                    console.error('刷新购物车库存异常:', error);
+                  }
+                }, [cart, showToast]);
                 
                 const cartTotal = useMemo(() => {
                   return cart.reduce((total, item) => total + Number(item.price) * item.quantity, 0);
