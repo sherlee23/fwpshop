@@ -107,32 +107,98 @@ const supabase = supabaseClient;
 // 解构 React Hooks 供后续直接使用
 const { useState, useEffect, useCallback, useRef, useMemo } = React;
 
-// 电话号码验证工具函数
+// 电话号码验证工具函数 - 支持马来西亚本地和国际格式
+// 支持格式:
+// - 本地格式: 0162327792, 0123456789 (10-11位)
+// - 国际格式: 60162327792, 60123456789 (11-12位)
+// 自动验证移动运营商前缀有效性
 const validateWhatsAppPhone = (phone) => {
-  const config = window.AppConfig?.PHONE_VALIDATION || { REQUIRED_PREFIX: '601', MIN_LENGTH: 11, MAX_LENGTH: 12 };
+  const config = window.AppConfig?.PHONE_VALIDATION || { 
+    ALLOW_LOCAL_FORMAT: true, 
+    ALLOW_INTL_FORMAT: true, 
+    LOCAL_PREFIX: '0', 
+    INTL_PREFIX: '60',
+    MIN_LENGTH: 10,
+    MAX_LENGTH: 12
+  };
+  
   const cleanPhone = phone.replace(/\D/g, ''); // 移除非数字字符
   
-  // 检查是否以指定前缀开头
-  if (!cleanPhone.startsWith(config.REQUIRED_PREFIX)) {
-    return { valid: false, error: `手机号必须以${config.REQUIRED_PREFIX}开头（马来西亚WhatsApp格式）` };
+  // 验证马来西亚手机号格式
+  let isValid = false;
+  let normalizedPhone = cleanPhone;
+  
+  // 检查本地格式 (0xxxxxxxx)
+  if (config.ALLOW_LOCAL_FORMAT && cleanPhone.startsWith(config.LOCAL_PREFIX)) {
+    // 本地格式: 01xxxxxxxx (10-11位)
+    if (cleanPhone.length >= 10 && cleanPhone.length <= 11) {
+      // 验证第二位数字是否为有效的移动运营商前缀 (1,2,3,4,6,7,8,9)
+      const secondDigit = cleanPhone.charAt(1);
+      if (['1','2','3','4','6','7','8','9'].includes(secondDigit)) {
+        isValid = true;
+        // 如果配置要求转换为国际格式，则转换
+        if (config.CONVERT_TO_INTL) {
+          normalizedPhone = config.INTL_PREFIX + cleanPhone.substring(1);
+        }
+      }
+    }
   }
   
-  // 检查长度
-  if (cleanPhone.length < config.MIN_LENGTH || cleanPhone.length > config.MAX_LENGTH) {
-    return { valid: false, error: `手机号长度必须在${config.MIN_LENGTH}-${config.MAX_LENGTH}位之间` };
+  // 检查国际格式 (60xxxxxxxx)
+  if (config.ALLOW_INTL_FORMAT && cleanPhone.startsWith(config.INTL_PREFIX)) {
+    // 国际格式: 601xxxxxxxx (11-12位)
+    if (cleanPhone.length >= 11 && cleanPhone.length <= 12) {
+      // 验证第三位数字是否为有效的移动运营商前缀
+      const thirdDigit = cleanPhone.charAt(2);
+      if (['1','2','3','4','6','7','8','9'].includes(thirdDigit)) {
+        isValid = true;
+      }
+    }
   }
   
-  return { valid: true, phone: cleanPhone };
+  if (!isValid) {
+    let errorMsg = '请输入有效的马来西亚手机号码';
+    if (config.ALLOW_LOCAL_FORMAT && config.ALLOW_INTL_FORMAT) {
+      errorMsg += '（如：0162327792 或 60162327792）';
+    } else if (config.ALLOW_LOCAL_FORMAT) {
+      errorMsg += '（如：0162327792）';
+    } else if (config.ALLOW_INTL_FORMAT) {
+      errorMsg += '（如：60162327792）';
+    }
+    return { valid: false, error: errorMsg };
+  }
+  
+  return { valid: true, phone: normalizedPhone };
 };
 
-// 格式化电话号码显示
+// 格式化电话号码显示 - 支持本地和国际格式
 const formatPhoneDisplay = (phone) => {
+  if (!phone) return '';
+  
   const cleanPhone = phone.replace(/\D/g, '');
-  if (cleanPhone.startsWith('601')) {
-    // 格式化为 +60 1X-XXX XXXX
-    return `+60 ${cleanPhone.slice(2, 3)}${cleanPhone.slice(3, 4)}-${cleanPhone.slice(4, 7)} ${cleanPhone.slice(7)}`;
+  
+  // 本地格式 (0xxxxxxxx)
+  if (cleanPhone.startsWith('0') && cleanPhone.length >= 10) {
+    // 格式化为 01X-XXX XXXX
+    if (cleanPhone.length === 10) {
+      return `${cleanPhone.slice(0, 3)}-${cleanPhone.slice(3, 6)} ${cleanPhone.slice(6)}`;
+    } else if (cleanPhone.length === 11) {
+      return `${cleanPhone.slice(0, 3)}-${cleanPhone.slice(3, 7)} ${cleanPhone.slice(7)}`;
+    }
   }
-  return phone;
+  
+  // 国际格式 (60xxxxxxxx)
+  if (cleanPhone.startsWith('60') && cleanPhone.length >= 11) {
+    // 格式化为 +60 1X-XXX XXXX
+    if (cleanPhone.length === 11) {
+      return `+60 ${cleanPhone.slice(2, 4)}-${cleanPhone.slice(4, 7)} ${cleanPhone.slice(7)}`;
+    } else if (cleanPhone.length === 12) {
+      return `+60 ${cleanPhone.slice(2, 4)}-${cleanPhone.slice(4, 8)} ${cleanPhone.slice(8)}`;
+    }
+  }
+  
+  // 如果无法格式化，返回原始号码
+  return cleanPhone || phone;
 };
 
 // 会员管理工具函数
