@@ -156,6 +156,7 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
       function LoginScreen({ onLogin }) {
         const [password, setPassword] = React.useState('');
         const [error, setError] = React.useState('');
+        const [showPassword, setShowPassword] = React.useState(false);
         const handleSubmit = e => {
           e.preventDefault();
           if (password === 'fengweipaiadmin') {
@@ -174,7 +175,12 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
               <form className="login-form" onSubmit={handleSubmit}>
                 <div className="form-group">
                   <label className="form-label">管理员密码</label>
-                  <input type="password" className="form-control" value={password} onChange={e => setPassword(e.target.value)} required />
+                  <div className="password-input-container">
+                    <input type={showPassword ? 'text' : 'password'} className="form-control" value={password} onChange={e => setPassword(e.target.value)} required />
+                    <button type="button" className="password-toggle-btn" onClick={() => setShowPassword(!showPassword)}>
+                      <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                    </button>
+                  </div>
                 </div>
                 <button type="submit" className="btn btn--primary btn--full-width">登录</button>
                 {error && <div style={{color:'red',marginTop:'8px'}}>{error}</div>}
