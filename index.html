@@ -492,7 +492,7 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                   if (!formData.phone || !/^(\+?6?01)[0-46-9]-?[0-9]{7,8}$/.test(formData.phone)) newErrors.phone = '请输入有效的电话号码';
                   if (!formData.delivery) newErrors.delivery = '请选择取货方式';
                   if (!formData.paymentMethod) newErrors.paymentMethod = '请选择付款方式';
-                  if (formData.paymentMethod === 'bank_transfer' && !paymentProof) newErrors.paymentProof = '请上传支付凭证';
+                  if ((formData.paymentMethod === 'Maybank QR' || formData.paymentMethod === 'TNG eWallet') && !paymentProof) newErrors.paymentProof = '请上传支付凭证';
                   setErrors(newErrors);
                   return Object.keys(newErrors).length === 0;
                 };
@@ -543,7 +543,7 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                             <select name="delivery" value={formData.delivery} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
                               <option value="">请选择取货方式</option>
                               <option value="self-pickup">自取</option>
-                              <option value="delivery">Lalamove送货</option>
+                              <option value="lalamove">Lalamove送货</option>
                             </select>
                             {errors.delivery && <p className="text-red-500 text-xs mt-1">{errors.delivery}</p>}
                           </div>
@@ -551,18 +551,39 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                             <label className="block text-sm font-medium text-gray-700 mb-1">付款方式 *</label>
                             <select name="paymentMethod" value={formData.paymentMethod} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
                               <option value="">请选择付款方式</option>
-                              <option value="cash">现金付款</option>
-                              <option value="bank_transfer">银行转账</option>
+                              <option value="Maybank QR">Maybank QR</option>
+                              <option value="TNG eWallet">TNG eWallet</option>
                             </select>
                             {errors.paymentMethod && <p className="text-red-500 text-xs mt-1">{errors.paymentMethod}</p>}
                           </div>
-                          {formData.paymentMethod === 'bank_transfer' && (
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">上传支付凭证 *</label>
-                              <input type="file" onChange={handleFileChange} accept="image/*,.pdf" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" />
-                              {fileName && <p className="text-green-600 text-xs mt-1">已选择: {fileName}</p>}
-                              {errors.paymentProof && <p className="text-red-500 text-xs mt-1">{errors.paymentProof}</p>}
-                            </div>
+                          {(formData.paymentMethod === 'Maybank QR' || formData.paymentMethod === 'TNG eWallet') && (
+                            <>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">支付二维码</label>
+                                <div className="flex justify-center p-4 bg-gray-50 rounded-lg">
+                                  {formData.paymentMethod === 'Maybank QR' && (
+                                    <img 
+                                      src="https://edfnhhthztskuuosuasw.supabase.co/storage/v1/object/public/product-photos/IMG_4042.png" 
+                                      alt="Maybank QR码" 
+                                      className="max-w-xs max-h-64 object-contain"
+                                    />
+                                  )}
+                                  {formData.paymentMethod === 'TNG eWallet' && (
+                                    <img 
+                                      src="https://edfnhhthztskuuosuasw.supabase.co/storage/v1/object/public/product-photos/IMG_4043.jpeg" 
+                                      alt="TNG eWallet二维码" 
+                                      className="max-w-xs max-h-64 object-contain"
+                                    />
+                                  )}
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">上传支付凭证 *</label>
+                                <input type="file" onChange={handleFileChange} accept="image/*,.pdf" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" />
+                                {fileName && <p className="text-green-600 text-xs mt-1">已选择: {fileName}</p>}
+                                {errors.paymentProof && <p className="text-red-500 text-xs mt-1">{errors.paymentProof}</p>}
+                              </div>
+                            </>
                           )}
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">备注</label>
@@ -591,14 +612,43 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                 );
               };
 
+              // 生成旧版格式的订单号：FW+YYYYMMDD+三位流水号
+              const generateOrderId = async () => {
+                const today = new Date();
+                const dateStr = today.getFullYear().toString() + 
+                                (today.getMonth() + 1).toString().padStart(2, '0') + 
+                                today.getDate().toString().padStart(2, '0');
+                
+                // 获取今天已有的订单来确定流水号
+                const { data: todayOrders } = await supabaseClient
+                  .from('orders')
+                  .select('order_id')
+                  .ilike('order_id', `FW${dateStr}%`)
+                  .order('order_id', { ascending: false })
+                  .limit(1);
+                
+                let sequenceNumber = 1;
+                if (todayOrders && todayOrders.length > 0) {
+                  const lastOrderId = todayOrders[0].order_id;
+                  const lastSequence = parseInt(lastOrderId.substring(10)); // 取最后3位数字
+                  sequenceNumber = lastSequence + 1;
+                }
+                
+                return `FW${dateStr}${sequenceNumber.toString().padStart(3, '0')}`;
+              };
+
               const ConfirmationModal = ({ orderData, onConfirm, onCancel, showToast }) => {
                 const [isSubmitting, setIsSubmitting] = useState(false);
                 const handleSubmit = async () => {
                   setIsSubmitting(true);
                   try {
                     const { paymentProof, cart, total, ...formData } = orderData;
+                    
+                    // 生成新格式的订单号
+                    const orderId = await generateOrderId();
+                    
                     const orderInsertData = {
-                      order_id: 'FW' + Date.now(),
+                      order_id: orderId,
                       name: formData.name,
                       phone: formData.phone,
                       delivery_method: formData.delivery,
@@ -659,7 +709,7 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                             <p>姓名: {orderData.name}</p>
                             <p>电话: {orderData.phone}</p>
                             <p>取货方式: {orderData.delivery === 'self-pickup' ? '自取' : 'Lalamove送货'}</p>
-                            <p>付款方式: {orderData.paymentMethod === 'cash' ? '现金付款' : '银行转账'}</p>
+                            <p>付款方式: {orderData.paymentMethod}</p>
                             {orderData.remarks && <p>备注: {orderData.remarks}</p>}
                           </div>
                           <div>
@@ -2139,7 +2189,7 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                         >
                           <option value="">全部方式</option>
                           <option value="self-pickup">自取</option>
-                          <option value="lalamove">配送</option>
+                          <option value="lalamove">Lalamove送货</option>
                         </select>
                         <button
                           onClick={fetchOrders}
