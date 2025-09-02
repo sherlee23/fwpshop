@@ -1,0 +1,35 @@
+# 敏感配置文件
+.env
+.env.local
+.env.production
+.env.development
+
+# 临时文件
+/tmp/
+*.tmp
+*.log
+
+# 依赖目录
+node_modules/
+bower_components/
+
+# 构建产物
+dist/
+build/
+.next/
+.nuxt/
+
+# 编辑器文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 备份文件
+*.bak
+*.backup
