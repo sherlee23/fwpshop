@@ -9,6 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+    <script src="config.js"></script>
     <style>
         @keyframes slide-in-down { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .animate-slide-in-down { animation: slide-in-down 0.3s ease-out forwards; }
@@ -92,19 +93,123 @@
       }
       
       // 迁移自 index.html 的全部 React 组件和功能
-// 1. Supabase 配置与常量
-const SUPABASE_URL = 'https://edfnhhthztskuuosuasw.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkZm5oaHRoenRza3V1b3N1YXN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5OTYxMTYsImV4cCI6MjA2NTU3MjExNn0.O3g2gjvsWagmWgmzoeJA8mPampvLYJr-KgqVwXsKoAo';
-const WHATSAPP_NUMBER = '60162327792';
-const ADMIN_PASSWORD = 'fengweipaiadmin';
-const SELF_PICKUP_ADDRESS = `667, Jalan 24, Taman Perindustrian Ehsan Jaya, Kepong, 52100, Kuala Lumpur.`;
-const PRODUCT_IMAGE_BASE_URL = 'https://edfnhhthztskuuosuasw.supabase.co/storage/v1/object/public/product-photos/';
+// 1. 从配置文件读取配置
+const SUPABASE_URL = window.AppConfig?.SUPABASE_URL || 'https://edfnhhthztskuuosuasw.supabase.co';
+const SUPABASE_ANON_KEY = window.AppConfig?.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkZm5oaHRoenRza3V1b3N1YXN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5OTYxMTYsImV4cCI6MjA2NTU3MjExNn0.O3g2gjvsWagmWgmzoeJA8mPampvLYJr-KgqVwXsKoAo';
+const WHATSAPP_NUMBER = window.AppConfig?.WHATSAPP_NUMBER || '60162327792';
+const ADMIN_PASSWORD = window.AppConfig?.ADMIN_PASSWORD || 'fengweipaiadmin';
+const SELF_PICKUP_ADDRESS = window.AppConfig?.SELF_PICKUP_ADDRESS || `667, Jalan 24, Taman Perindustrian Ehsan Jaya, Kepong, 52100, Kuala Lumpur.`;
+const PRODUCT_IMAGE_BASE_URL = window.AppConfig?.PRODUCT_IMAGE_BASE_URL || 'https://edfnhhthztskuuosuasw.supabase.co/storage/v1/object/public/product-photos/';
 // 避免与全局 supabase UMD 对象同名遮蔽，显式引用 window.supabase
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // 为了向后兼容，也创建 supabase 别名
 const supabase = supabaseClient;
 // 解构 React Hooks 供后续直接使用
 const { useState, useEffect, useCallback, useRef, useMemo } = React;
+
+// 电话号码验证工具函数
+const validateWhatsAppPhone = (phone) => {
+  const config = window.AppConfig?.PHONE_VALIDATION || { REQUIRED_PREFIX: '601', MIN_LENGTH: 11, MAX_LENGTH: 12 };
+  const cleanPhone = phone.replace(/\D/g, ''); // 移除非数字字符
+  
+  // 检查是否以指定前缀开头
+  if (!cleanPhone.startsWith(config.REQUIRED_PREFIX)) {
+    return { valid: false, error: `手机号必须以${config.REQUIRED_PREFIX}开头（马来西亚WhatsApp格式）` };
+  }
+  
+  // 检查长度
+  if (cleanPhone.length < config.MIN_LENGTH || cleanPhone.length > config.MAX_LENGTH) {
+    return { valid: false, error: `手机号长度必须在${config.MIN_LENGTH}-${config.MAX_LENGTH}位之间` };
+  }
+  
+  return { valid: true, phone: cleanPhone };
+};
+
+// 格式化电话号码显示
+const formatPhoneDisplay = (phone) => {
+  const cleanPhone = phone.replace(/\D/g, '');
+  if (cleanPhone.startsWith('601')) {
+    // 格式化为 +60 1X-XXX XXXX
+    return `+60 ${cleanPhone.slice(2, 3)}${cleanPhone.slice(3, 4)}-${cleanPhone.slice(4, 7)} ${cleanPhone.slice(7)}`;
+  }
+  return phone;
+};
+
+// 会员管理工具函数
+const MemberService = {
+  // 检查会员是否存在
+  async checkMemberExists(phone) {
+    const { data, error } = await supabaseClient
+      .from('members')
+      .select('*')
+      .eq('phone', phone)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') { // PGRST116 是没有找到记录的错误码
+      throw error;
+    }
+    
+    return data;
+  },
+  
+  // 创建新会员
+  async createMember(phone, name) {
+    const memberData = {
+      phone: phone,
+      name: name,
+      points: 0,
+      total_orders: 0,
+      total_amount: 0,
+      created_at: new Date().toISOString()
+    };
+    
+    const { data, error } = await supabaseClient
+      .from('members')
+      .insert([memberData])
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return data;
+  },
+  
+  // 获取会员未完成订单
+  async getIncompleteOrders(phone) {
+    const { data, error } = await supabaseClient
+      .from('orders')
+      .select('*')
+      .eq('phone', phone)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+      
+    if (error) throw error;
+    return data || [];
+  },
+  
+  // 更新会员统计信息
+  async updateMemberStats(phone) {
+    const { data: orders, error: ordersError } = await supabaseClient
+      .from('orders')
+      .select('total_amount')
+      .eq('phone', phone)
+      .eq('status', 'completed');
+      
+    if (ordersError) throw ordersError;
+    
+    const totalOrders = orders.length;
+    const totalAmount = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+    
+    const { error: updateError } = await supabaseClient
+      .from('members')
+      .update({ 
+        total_orders: totalOrders, 
+        total_amount: totalAmount 
+      })
+      .eq('phone', phone);
+      
+    if (updateError) throw updateError;
+  }
+};
 
 // Chrome兼容性增强：添加错误边界
 class ErrorBoundary extends React.Component {
@@ -258,8 +363,9 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                         </div>
                       </div>
                     </header>
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                      <div className="mb-8">
+                    {/* 吸顶的分类导航栏 */}
+                    <div className="bg-white shadow-sm sticky top-16 z-30 border-t border-gray-100">
+                      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                         <div className="flex flex-wrap gap-2 justify-center">
                           {categories.map(category => (
                             <button
@@ -268,7 +374,7 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                               className={`px-4 py-2 rounded-full font-medium transition-colors ${
                                 activeCategory === category
                                   ? 'bg-red-600 text-white'
-                                  : 'bg-white text-gray-700 hover:bg-red-100'
+                                  : 'bg-white text-gray-700 hover:bg-red-100 border border-gray-200'
                               }`}
                             >
                               {category}
@@ -276,7 +382,8 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                           ))}
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-20">
+                    </div>
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                         {isLoading ? (
                           <p className="col-span-full text-center text-gray-500">加载中...</p>
                         ) : products.length === 0 ? (
@@ -539,11 +646,53 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                 const [fileName, setFileName] = useState('');
                 const [errors, setErrors] = useState({});
                 const [agree, setAgree] = useState(false);
+                const [existingMember, setExistingMember] = useState(null);
+                const [incompleteOrders, setIncompleteOrders] = useState([]);
+                const [showMergeOption, setShowMergeOption] = useState(false);
+                
+                // 检查会员和未完成订单
+                const checkMemberAndOrders = async (phone) => {
+                  try {
+                    const phoneValidation = validateWhatsAppPhone(phone);
+                    if (!phoneValidation.valid) {
+                      setErrors(prev => ({ ...prev, phone: phoneValidation.error }));
+                      return;
+                    }
+                    
+                    // 清除电话错误
+                    setErrors(prev => ({ ...prev, phone: null }));
+                    
+                    // 检查会员是否存在
+                    const member = await MemberService.checkMemberExists(phoneValidation.phone);
+                    setExistingMember(member);
+                    
+                    // 如果会员存在且启用了订单合并功能，检查未完成订单
+                    if (member && window.AppConfig?.MEMBER_FEATURES?.AUTO_MERGE_ORDERS) {
+                      const incomplete = await MemberService.getIncompleteOrders(phoneValidation.phone);
+                      setIncompleteOrders(incomplete);
+                      setShowMergeOption(incomplete.length > 0);
+                    }
+                  } catch (error) {
+                    console.error('检查会员信息失败:', error);
+                    showToast('检查会员信息失败: ' + error.message, 'danger');
+                  }
+                };
+                
                 const validate = () => {
                   const newErrors = {};
                   if (!agree) newErrors.agree = '请阅读并同意条款';
                   if (!formData.name) newErrors.name = '请输入姓名';
-                  if (!formData.phone || !/^(\+?6?01)[0-46-9]-?[0-9]{7,8}$/.test(formData.phone)) newErrors.phone = '请输入有效的电话号码';
+                  
+                  // 使用新的电话验证
+                  if (!formData.phone) {
+                    newErrors.phone = '请输入电话号码';
+                  } else {
+                    const phoneValidation = validateWhatsAppPhone(formData.phone);
+                    if (!phoneValidation.valid) {
+                      newErrors.phone = phoneValidation.error;
+                    }
+                  }
+                  
                   if (!formData.delivery) newErrors.delivery = '请选择取货方式';
                   if (!formData.paymentMethod) newErrors.paymentMethod = '请选择付款方式';
                   // Lalamove delivery requires address in remarks field
@@ -554,10 +703,16 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                   setErrors(newErrors);
                   return Object.keys(newErrors).length === 0;
                 };
+                
                 const handleChange = (e) => {
                   const { name, value } = e.target;
                   setFormData(prev => ({ ...prev, [name]: value }));
                   if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
+                  
+                  // 如果是电话号码字段，进行会员检查
+                  if (name === 'phone' && value.length >= 10) {
+                    setTimeout(() => checkMemberAndOrders(value), 500);
+                  }
                 };
                 const handleFileChange = (e) => {
                   const file = e.target.files[0];
@@ -727,6 +882,13 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                   try {
                     const { paymentProof, cart, total, ...formData } = orderData;
                     
+                    // 验证手机号格式
+                    const phoneValidation = validateWhatsAppPhone(formData.phone);
+                    if (!phoneValidation.valid) {
+                      throw new Error(phoneValidation.error);
+                    }
+                    const validatedPhone = phoneValidation.phone;
+                    
                     // Validate stock availability before submitting order
                     for (const item of cart) {
                       if (!item.is_unlimited) {
@@ -747,13 +909,51 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                       }
                     }
                     
-                    // 生成新格式的订单号
-                    const orderId = await generateOrderId();
+                    // 会员系统逻辑
+                    let member = null;
+                    let shouldMergeOrder = false;
+                    let existingOrderId = null;
+                    
+                    if (window.AppConfig?.MEMBER_FEATURES?.ENABLED) {
+                      // 检查会员是否存在
+                      try {
+                        member = await MemberService.checkMemberExists(validatedPhone);
+                      } catch (error) {
+                        console.error('检查会员失败:', error);
+                      }
+                      
+                      // 如果会员不存在，创建新会员
+                      if (!member) {
+                        try {
+                          member = await MemberService.createMember(validatedPhone, formData.name);
+                          showToast(`欢迎${formData.name}！已为您创建会员账户`, 'success');
+                        } catch (error) {
+                          console.error('创建会员失败:', error);
+                          showToast('创建会员失败: ' + error.message, 'warning');
+                        }
+                      }
+                      
+                      // 检查是否有未完成订单可以合并
+                      if (member && window.AppConfig.MEMBER_FEATURES.AUTO_MERGE_ORDERS) {
+                        try {
+                          const incompleteOrders = await MemberService.getIncompleteOrders(validatedPhone);
+                          if (incompleteOrders.length > 0) {
+                            shouldMergeOrder = true;
+                            existingOrderId = incompleteOrders[0].order_id; // 使用最新的未完成订单
+                          }
+                        } catch (error) {
+                          console.error('检查未完成订单失败:', error);
+                        }
+                      }
+                    }
+                    
+                    // 生成新格式的订单号或使用现有订单号
+                    const orderId = shouldMergeOrder ? existingOrderId : await generateOrderId();
                     
                     const orderInsertData = {
                       order_id: orderId,
                       name: formData.name,
-                      phone: formData.phone,
+                      phone: validatedPhone, // 使用验证后的手机号
                       delivery_method: formData.delivery,
                       remarks: formData.remarks || '',
                       payment_method: formData.paymentMethod,
@@ -766,7 +966,8 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                         emoji: item.emoji,
                         is_unlimited: item.is_unlimited
                       })),
-                      created_at: new Date().toISOString()
+                      created_at: new Date().toISOString(),
+                      member_id: member?.id || null // 关联会员ID
                     };
                     let paymentProofUrl = null;
                     if (paymentProof) {
@@ -781,8 +982,63 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                     if (paymentProofUrl) {
                       orderInsertData.payment_proof_url = paymentProofUrl;
                     }
-                    const { data: insertedOrder, error: insertError } = await supabaseClient.from('orders').insert([orderInsertData]).select().single();
-                    if (insertError) throw insertError;
+                    
+                    let insertedOrder;
+                    if (shouldMergeOrder) {
+                      // 合并订单：更新现有订单的商品和总金额
+                      const { data: existingOrder, error: fetchError } = await supabaseClient
+                        .from('orders')
+                        .select('*')
+                        .eq('order_id', existingOrderId)
+                        .single();
+                        
+                      if (fetchError) throw fetchError;
+                      
+                      // 合并商品项目
+                      const existingItems = existingOrder.order_items || [];
+                      const newItems = orderInsertData.order_items;
+                      const mergedItems = [...existingItems];
+                      
+                      // 合并逻辑：相同商品累加数量，新商品添加
+                      newItems.forEach(newItem => {
+                        const existingItemIndex = mergedItems.findIndex(item => 
+                          item.product === newItem.product && item.price === newItem.price
+                        );
+                        
+                        if (existingItemIndex >= 0) {
+                          mergedItems[existingItemIndex].quantity += newItem.quantity;
+                        } else {
+                          mergedItems.push(newItem);
+                        }
+                      });
+                      
+                      // 更新订单
+                      const { data: updatedOrder, error: updateError } = await supabaseClient
+                        .from('orders')
+                        .update({
+                          order_items: mergedItems,
+                          total_amount: existingOrder.total_amount + total,
+                          updated_at: new Date().toISOString()
+                        })
+                        .eq('order_id', existingOrderId)
+                        .select()
+                        .single();
+                        
+                      if (updateError) throw updateError;
+                      insertedOrder = updatedOrder;
+                      showToast('订单已成功合并到现有订单！', 'success');
+                    } else {
+                      // 创建新订单
+                      const { data: newOrder, error: insertError } = await supabaseClient
+                        .from('orders')
+                        .insert([orderInsertData])
+                        .select()
+                        .single();
+                        
+                      if (insertError) throw insertError;
+                      insertedOrder = newOrder;
+                      showToast('订单提交成功！', 'success');
+                    }
                     for (const item of cart) {
                       if (!item.is_unlimited && item.stock_quantity !== undefined) {
                         const newStock = Math.max(0, item.stock_quantity - item.quantity);
@@ -3365,6 +3621,256 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                 );
               }
 
+              // ========= 会员管理 =========
+              function MemberManagement() {
+                const [members, setMembers] = useState([]);
+                const [loading, setLoading] = useState(true);
+                const [search, setSearch] = useState('');
+                const [toast, setToast] = useState(null);
+                
+                const showToast = (message, type = 'success') => {
+                  setToast({ message, type });
+                  setTimeout(() => setToast(null), 3000);
+                };
+                
+                useEffect(() => {
+                  fetchMembers();
+                }, []);
+                
+                const fetchMembers = async () => {
+                  setLoading(true);
+                  try {
+                    const { data, error } = await supabaseClient
+                      .from('members')
+                      .select('*')
+                      .order('created_at', { ascending: false });
+                      
+                    if (error) throw error;
+                    setMembers(data || []);
+                  } catch (error) {
+                    console.error('获取会员列表失败:', error);
+                    showToast('获取会员列表失败: ' + error.message, 'danger');
+                  }
+                  setLoading(false);
+                };
+                
+                const filteredMembers = useMemo(() => {
+                  if (!search) return members;
+                  return members.filter(member => 
+                    member.name?.toLowerCase().includes(search.toLowerCase()) ||
+                    member.phone?.includes(search)
+                  );
+                }, [members, search]);
+                
+                return (
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                      <h2 className="text-2xl font-bold text-gray-800">会员管理 ({members.length})</h2>
+                      <button
+                        onClick={fetchMembers}
+                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      >
+                        <i className="fas fa-refresh mr-1"></i>刷新
+                      </button>
+                    </div>
+                    
+                    {toast && (
+                      <div className={`p-4 rounded-md ${toast.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {toast.message}
+                      </div>
+                    )}
+                    
+                    <div className="bg-white rounded-lg shadow p-6">
+                      <div className="mb-4">
+                        <input
+                          type="text"
+                          placeholder="搜索会员姓名或手机号..."
+                          value={search}
+                          onChange={(e) => setSearch(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        />
+                      </div>
+                      
+                      {loading ? (
+                        <div className="text-center py-8">加载中...</div>
+                      ) : filteredMembers.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">暂无会员数据</div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full table-auto">
+                            <thead>
+                              <tr className="bg-gray-50">
+                                <th className="px-4 py-3 text-left">姓名</th>
+                                <th className="px-4 py-3 text-left">手机号</th>
+                                <th className="px-4 py-3 text-left">积分</th>
+                                <th className="px-4 py-3 text-left">订单数</th>
+                                <th className="px-4 py-3 text-left">消费总额</th>
+                                <th className="px-4 py-3 text-left">注册时间</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {filteredMembers.map(member => (
+                                <tr key={member.id} className="border-b">
+                                  <td className="px-4 py-3">{member.name}</td>
+                                  <td className="px-4 py-3">{formatPhoneDisplay(member.phone)}</td>
+                                  <td className="px-4 py-3">{member.points || 0}</td>
+                                  <td className="px-4 py-3">{member.total_orders || 0}</td>
+                                  <td className="px-4 py-3">RM{(member.total_amount || 0).toFixed(2)}</td>
+                                  <td className="px-4 py-3">
+                                    {new Date(member.created_at).toLocaleDateString()}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
+              
+              // ========= 系统设置 =========
+              function SystemSettings() {
+                const [config, setConfig] = useState(window.AppConfig?.MEMBER_FEATURES || {});
+                const [saving, setSaving] = useState(false);
+                const [toast, setToast] = useState(null);
+                
+                const showToast = (message, type = 'success') => {
+                  setToast({ message, type });
+                  setTimeout(() => setToast(null), 3000);
+                };
+                
+                const handleConfigChange = (key, value) => {
+                  setConfig(prev => ({ ...prev, [key]: value }));
+                };
+                
+                const saveConfig = async () => {
+                  setSaving(true);
+                  try {
+                    // 更新全局配置
+                    if (window.AppConfig) {
+                      window.AppConfig.MEMBER_FEATURES = { ...config };
+                    }
+                    
+                    // 这里可以添加保存到数据库的逻辑
+                    showToast('设置已保存', 'success');
+                  } catch (error) {
+                    console.error('保存设置失败:', error);
+                    showToast('保存设置失败: ' + error.message, 'danger');
+                  }
+                  setSaving(false);
+                };
+                
+                return (
+                  <div className="space-y-6">
+                    <h2 className="text-2xl font-bold text-gray-800">系统设置</h2>
+                    
+                    {toast && (
+                      <div className={`p-4 rounded-md ${toast.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {toast.message}
+                      </div>
+                    )}
+                    
+                    <div className="bg-white rounded-lg shadow p-6">
+                      <h3 className="text-lg font-semibold mb-4">会员功能设置</h3>
+                      
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <label className="text-sm font-medium text-gray-900">启用会员系统</label>
+                            <p className="text-sm text-gray-500">开启后将自动为顾客创建会员账户</p>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={config.ENABLED || false}
+                              onChange={(e) => handleConfigChange('ENABLED', e.target.checked)}
+                              className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                          </label>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <label className="text-sm font-medium text-gray-900">积分功能</label>
+                            <p className="text-sm text-gray-500">为会员提供积分奖励和兑换</p>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={config.POINTS_SYSTEM || false}
+                              onChange={(e) => handleConfigChange('POINTS_SYSTEM', e.target.checked)}
+                              className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                          </label>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <label className="text-sm font-medium text-gray-900">会员登录功能</label>
+                            <p className="text-sm text-gray-500">要求会员登录后才能下单</p>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={config.LOGIN_REQUIRED || false}
+                              onChange={(e) => handleConfigChange('LOGIN_REQUIRED', e.target.checked)}
+                              className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                          </label>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <label className="text-sm font-medium text-gray-900">订单历史查看</label>
+                            <p className="text-sm text-gray-500">允许会员查看历史订单</p>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={config.ORDER_HISTORY || false}
+                              onChange={(e) => handleConfigChange('ORDER_HISTORY', e.target.checked)}
+                              className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                          </label>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <label className="text-sm font-medium text-gray-900">自动订单合并</label>
+                            <p className="text-sm text-gray-500">相同会员的未完成订单自动合并</p>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={config.AUTO_MERGE_ORDERS || false}
+                              onChange={(e) => handleConfigChange('AUTO_MERGE_ORDERS', e.target.checked)}
+                              className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                          </label>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-6 pt-6 border-t">
+                        <button
+                          onClick={saveConfig}
+                          disabled={saving}
+                          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                        >
+                          {saving ? '保存中...' : '保存设置'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
               function Layout({ onLogout, currentView, setCurrentView }) {
                 const [view, setView] = useState('dashboard');
                 const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -3432,6 +3938,8 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                             {k:'products', i:'pizza-slice', t:'产品管理'},
                             {k:'inventory', i:'boxes', t:'库存管理'},
                             {k:'orders', i:'list', t:'订单管理'},
+                            {k:'members', i:'users', t:'会员管理'},
+                            {k:'settings', i:'cogs', t:'系统设置'},
                             {k:'scanner', i:'qrcode', t:'扫码功能'},
                             {k:'camera', i:'camera', t:'拍照功能'},
                             {k:'analytics', i:'chart-pie', t:'数据分析'}
@@ -3458,6 +3966,8 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                         {view === 'products' && <Products/>}
                         {view === 'inventory' && <Inventory/>}
                         {view === 'orders' && <Orders/>}
+                        {view === 'members' && <MemberManagement/>}
+                        {view === 'settings' && <SystemSettings/>}
                         {view === 'scanner' && <Scanner/>}
                         {view === 'camera' && <Camera/>}
                         {view === 'analytics' && <Analytics/>}
