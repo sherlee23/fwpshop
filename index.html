@@ -417,6 +417,11 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                                       <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
                                         {item.is_unlimited ? '预购' : '现货'}
                                       </span>
+                                      {!item.is_unlimited && (
+                                        <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                          库存: {item.stock_quantity || 0}
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
                                   <div className="flex flex-col items-end gap-2">
@@ -430,9 +435,14 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                                       <span className="w-8 text-center font-medium text-gray-800">{item.quantity}</span>
                                       <button
                                         onClick={() => handleQuantityChange(item, item.quantity + 1)}
-                                        className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 hover:text-red-600 transition-colors"
+                                        disabled={!item.is_unlimited && item.quantity >= (item.stock_quantity || 0)}
+                                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs transition-colors ${
+                                          !item.is_unlimited && item.quantity >= (item.stock_quantity || 0)
+                                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                            : 'bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-red-600'
+                                        }`}
                                       >
-                                        <i className="fas fa-plus text-xs"></i>
+                                        <i className="fas fa-plus"></i>
                                       </button>
                                     </div>
                                     <button
@@ -492,6 +502,10 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                   if (!formData.phone || !/^(\+?6?01)[0-46-9]-?[0-9]{7,8}$/.test(formData.phone)) newErrors.phone = '请输入有效的电话号码';
                   if (!formData.delivery) newErrors.delivery = '请选择取货方式';
                   if (!formData.paymentMethod) newErrors.paymentMethod = '请选择付款方式';
+                  // Lalamove delivery requires address in remarks field
+                  if (formData.delivery === 'lalamove' && (!formData.remarks || formData.remarks.trim() === '')) {
+                    newErrors.remarks = 'Lalamove配送时备注栏不能为空，请填写配送地址';
+                  }
                   if ((formData.paymentMethod === 'Maybank QR' || formData.paymentMethod === 'TNG eWallet') && !paymentProof) newErrors.paymentProof = '请上传支付凭证';
                   setErrors(newErrors);
                   return Object.keys(newErrors).length === 0;
@@ -585,9 +599,32 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                               </div>
                             </>
                           )}
+                          
+                          {/* Self-pickup address display */}
+                          {formData.delivery === 'self-pickup' && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">自取地址</label>
+                              <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
+                                {SELF_PICKUP_ADDRESS}
+                              </div>
+                              <p className="text-gray-500 text-xs mt-1">自取地址为只读，无需填写</p>
+                            </div>
+                          )}
+                          
+                          {/* Remarks field - required for Lalamove, optional for self-pickup */}
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">备注</label>
-                            <textarea name="remarks" value={formData.remarks} onChange={handleChange} rows="3" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="如有特殊要求，请在此说明"></textarea>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              备注 {formData.delivery === 'lalamove' && <span className="text-red-500">*</span>}
+                            </label>
+                            <textarea 
+                              name="remarks" 
+                              value={formData.remarks} 
+                              onChange={handleChange} 
+                              rows="3" 
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" 
+                              placeholder={formData.delivery === 'lalamove' ? '请在此填写配送地址（必填）' : '如有特殊要求，请在此说明'}
+                            />
+                            {errors.remarks && <p className="text-red-500 text-xs mt-1">{errors.remarks}</p>}
                           </div>
                           <div className="flex items-start gap-2">
                             <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-1" />
@@ -643,6 +680,26 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                   setIsSubmitting(true);
                   try {
                     const { paymentProof, cart, total, ...formData } = orderData;
+                    
+                    // Validate stock availability before submitting order
+                    for (const item of cart) {
+                      if (!item.is_unlimited) {
+                        const { data: productData, error: productError } = await supabaseClient
+                          .from('products')
+                          .select('stock_quantity')
+                          .eq('id', item.id)
+                          .single();
+                          
+                        if (productError) {
+                          throw new Error(`获取商品库存失败: ${productError.message}`);
+                        }
+                        
+                        const currentStock = productData.stock_quantity ?? 0;
+                        if (item.quantity > currentStock) {
+                          throw new Error(`商品"${item.name}"库存不足，当前库存：${currentStock}件，订单需要：${item.quantity}件`);
+                        }
+                      }
+                    }
                     
                     // 生成新格式的订单号
                     const orderId = await generateOrderId();
@@ -3068,9 +3125,29 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                 }, [fetchProducts]);
                 
                 const addToCart = (product) => {
+                  // Check stock availability for non-preorder items (现货商品)
+                  if (!product.is_unlimited) {
+                    const availableStock = product.stock_quantity ?? 0;
+                    const currentInCart = cart.find(item => item.id === product.id)?.quantity ?? 0;
+                    
+                    if (availableStock <= 0) {
+                      showToast('商品已售罄', 'danger');
+                      return;
+                    }
+                    
+                    if (currentInCart >= availableStock) {
+                      showToast(`库存不足，仅剩${availableStock}件`, 'danger');
+                      return;
+                    }
+                  }
+                  
                   setCart(prevCart => {
                     const existingItem = prevCart.find(item => item.id === product.id);
                     if (existingItem) {
+                      // Double-check stock limit before updating
+                      if (!product.is_unlimited && existingItem.quantity >= (product.stock_quantity ?? 0)) {
+                        return prevCart; // Don't update if would exceed stock
+                      }
                       return prevCart.map(item =>
                         item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
                       );
@@ -3084,13 +3161,26 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                 const updateCartQuantity = (productId, newQuantity) => {
                   if (newQuantity <= 0) {
                     setCart(prevCart => prevCart.filter(item => item.id !== productId));
-                  } else {
-                    setCart(prevCart =>
-                      prevCart.map(item =>
-                        item.id === productId ? { ...item, quantity: newQuantity } : item
-                      )
-                    );
+                    return;
                   }
+                  
+                  setCart(prevCart =>
+                    prevCart.map(item => {
+                      if (item.id === productId) {
+                        // Validate stock for non-preorder items (现货商品)
+                        if (!item.is_unlimited) {
+                          const availableStock = item.stock_quantity ?? 0;
+                          if (newQuantity > availableStock) {
+                            // Auto-adjust to maximum available stock
+                            showToast(`数量已调整为库存上限：${availableStock}件`, 'warning');
+                            return { ...item, quantity: availableStock };
+                          }
+                        }
+                        return { ...item, quantity: newQuantity };
+                      }
+                      return item;
+                    })
+                  );
                 };
                 
                 const removeFromCart = (productId) => {
