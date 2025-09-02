@@ -835,6 +835,12 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                   stockValue: 0
                 });
 
+                const [presaleStats, setPresaleStats] = useState({
+                  totalBoxes: 0,
+                  completedGroups: 0,
+                  remainingBoxes: 0
+                });
+
                 useEffect(() => {
                   const fetchStats = async () => {
                     try {
@@ -863,6 +869,42 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                       const { data: products } = await supabaseClient
                         .from('products')
                         .select('*');
+
+                      // 获取所有订单用于预售统计
+                      const { data: allOrders } = await supabaseClient
+                        .from('orders')
+                        .select('*, order_items(*)');
+
+                      // 计算预售成团统计
+                      let totalPresaleBoxes = 0;
+                      if (allOrders) {
+                        allOrders.forEach(order => {
+                          if (order.order_items) {
+                            order.order_items.forEach(item => {
+                              // 排除现货和运费专用商品
+                              if (item.product && 
+                                  !item.product.includes('运费') && 
+                                  item.product !== '运费专用') {
+                                // 查找对应的产品信息
+                                const product = products?.find(p => p.name === item.product);
+                                // 只统计预售商品（is_unlimited为true的商品）
+                                if (product && product.is_unlimited) {
+                                  totalPresaleBoxes += item.quantity || 0;
+                                }
+                              }
+                            });
+                          }
+                        });
+                      }
+
+                      const completedGroups = Math.floor(totalPresaleBoxes / 200);
+                      const remainingBoxes = 200 - (totalPresaleBoxes % 200);
+
+                      setPresaleStats({
+                        totalBoxes: totalPresaleBoxes,
+                        completedGroups,
+                        remainingBoxes: remainingBoxes === 200 ? 0 : remainingBoxes
+                      });
 
                       const todaySales = (todayOrders || []).reduce((sum, order) => sum + Number(order.total_amount), 0);
                       const monthSales = (monthOrders || []).reduce((sum, order) => sum + Number(order.total_amount), 0);
@@ -897,6 +939,48 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                 return (
                   <div className="space-y-6">
                     <h2 className="text-2xl font-bold text-gray-800">仪表板</h2>
+                    
+                    {/* 预售成团统计 */}
+                    <div className="bg-gradient-to-r from-pink-500 to-rose-500 rounded-lg shadow-lg text-white p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <i className="fas fa-users text-2xl"></i>
+                          <h3 className="text-xl font-bold">预售成团统计</h3>
+                        </div>
+                        <div className="text-sm bg-white/20 px-3 py-1 rounded-full">
+                          每200盒成团
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-white/10 rounded-lg p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium opacity-90">已成团数</p>
+                              <p className="text-2xl font-bold">{presaleStats.completedGroups}团</p>
+                            </div>
+                            <i className="fas fa-check-circle text-2xl opacity-80"></i>
+                          </div>
+                        </div>
+                        <div className="bg-white/10 rounded-lg p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium opacity-90">总售出数量</p>
+                              <p className="text-2xl font-bold">{presaleStats.totalBoxes}盒</p>
+                            </div>
+                            <i className="fas fa-box text-2xl opacity-80"></i>
+                          </div>
+                        </div>
+                        <div className="bg-white/10 rounded-lg p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium opacity-90">下一团还需</p>
+                              <p className="text-2xl font-bold">{presaleStats.remainingBoxes}盒</p>
+                            </div>
+                            <i className="fas fa-hourglass-half text-2xl opacity-80"></i>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                     
                     {/* 统计卡片 */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -3056,12 +3140,20 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
 
               function Layout({ onLogout, currentView, setCurrentView }) {
                 const [view, setView] = useState('dashboard');
+                const [sidebarOpen, setSidebarOpen] = useState(false);
                 
                 return (
                   <div className="flex flex-col h-screen">
                     <header className="bg-white shadow-sm border-b px-6 py-4">
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-3">
+                          {/* Mobile menu button */}
+                          <button 
+                            onClick={() => setSidebarOpen(true)} 
+                            className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+                          >
+                            <i className="fas fa-bars text-xl"></i>
+                          </button>
                           <i className="fas fa-utensils text-2xl text-red-600"></i>
                           <h1 className="text-xl font-bold text-gray-800">锋味派管理后台</h1>
                         </div>
@@ -3072,7 +3164,7 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                           >
                             <i className="fas fa-store"></i>返回客户端
                           </button>
-                          <span className="text-sm text-gray-500">管理员</span>
+                          <span className="text-sm text-gray-500 hidden sm:inline">管理员</span>
                           <button 
                             onClick={onLogout} 
                             className="px-4 py-2 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
@@ -3082,8 +3174,31 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                         </div>
                       </div>
                     </header>
-                    <div className="flex flex-1">
-                      <aside className="w-64 bg-white border-r shadow-sm">
+                    <div className="flex flex-1 relative">
+                      {/* Sidebar overlay for mobile */}
+                      {sidebarOpen && (
+                        <div
+                          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+                          onClick={() => setSidebarOpen(false)}
+                        />
+                      )}
+                      
+                      {/* Sidebar */}
+                      <aside className={`
+                        w-64 bg-white border-r shadow-sm transition-transform duration-300 ease-in-out
+                        md:relative md:translate-x-0
+                        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+                        fixed md:static top-0 left-0 h-full z-50 md:z-auto
+                      `}>
+                        <div className="flex justify-between items-center p-4 md:hidden border-b">
+                          <span className="font-bold text-gray-800">菜单</span>
+                          <button 
+                            onClick={() => setSidebarOpen(false)}
+                            className="p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+                          >
+                            <i className="fas fa-times"></i>
+                          </button>
+                        </div>
                         <nav className="p-4 space-y-2">
                           {[
                             {k:'dashboard', i:'chart-line', t:'仪表板'},
@@ -3096,7 +3211,10 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                           ].map(m => (
                             <button 
                               key={m.k} 
-                              onClick={() => setView(m.k)} 
+                              onClick={() => {
+                                setView(m.k);
+                                setSidebarOpen(false); // Close sidebar on mobile after selection
+                              }} 
                               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
                                 view === m.k ? 'bg-red-100 text-red-700' : 'text-gray-600 hover:bg-gray-100'
                               }`}
@@ -3107,7 +3225,8 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                           ))}
                         </nav>
                       </aside>
-                      <main className="flex-1 p-6 overflow-auto bg-gray-50">
+                      
+                      <main className="flex-1 p-3 md:p-6 overflow-auto bg-gray-50">
                         {view === 'dashboard' && <Dashboard setView={setView}/>}
                         {view === 'products' && <Products/>}
                         {view === 'inventory' && <Inventory/>}
