@@ -3102,17 +3102,193 @@
             );
         };
         
-        // 📊 库存管理组件 (简化版)
+        // 📊 完整库存管理组件
         const InventoryManager = () => {
+            const [products, setProducts] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [stats, setStats] = useState({
+                totalStock: 0,
+                stockValue: 0,
+                lowStockCount: 0,
+                outOfStockCount: 0
+            });
+            
+            const fetchInventoryData = useCallback(async () => {
+                setLoading(true);
+                try {
+                    const { data, error } = await supabase
+                        .from('products')
+                        .select('*')
+                        .order('name');
+                    
+                    if (error) throw error;
+                    
+                    const products = data || [];
+                    
+                    // 计算库存统计（只计算现货商品）
+                    const physicalProducts = products.filter(p => !p.is_unlimited);
+                    const totalStock = physicalProducts.reduce((sum, p) => sum + (p.stock_quantity || 0), 0);
+                    const stockValue = physicalProducts.reduce((sum, p) => sum + ((p.stock_quantity || 0) * (p.price || 0)), 0);
+                    const lowStockCount = physicalProducts.filter(p => (p.stock_quantity || 0) <= (p.min_stock_threshold || 5) && (p.stock_quantity || 0) > 0).length;
+                    const outOfStockCount = physicalProducts.filter(p => (p.stock_quantity || 0) === 0).length;
+                    
+                    setProducts(products);
+                    setStats({ totalStock, stockValue, lowStockCount, outOfStockCount });
+                } catch (error) {
+                    console.error('加载库存数据失败:', error);
+                } finally {
+                    setLoading(false);
+                }
+            }, []);
+            
+            useEffect(() => {
+                fetchInventoryData();
+            }, [fetchInventoryData]);
+            
+            if (loading) {
+                return <LoadingSpinner text="加载库存数据..." />;
+            }
+            
             return (
                 <div className="space-y-6">
                     <div className="page-header">
                         <h2 className="page-title">📊 库存管理</h2>
                         <p className="page-subtitle">监控库存状态和补货提醒</p>
                     </div>
-                    <div className="text-center p-8 text-gray-500">
-                        <i className="fas fa-hammer text-4xl mb-4"></i>
-                        <p>库存管理功能正在构建中...</p>
+                    
+                    {/* 库存统计卡片 */}
+                    <div className="stats-grid">
+                        <div className="stat-card">
+                            <div className="stat-icon" style={{ color: '#2563eb' }}>
+                                <i className="fas fa-boxes"></i>
+                            </div>
+                            <div className="stat-content">
+                                <h3>总库存</h3>
+                                <p className="stat-value" style={{ color: '#2563eb' }}>
+                                    {stats.totalStock}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="stat-card">
+                            <div className="stat-icon" style={{ color: '#16a34a' }}>
+                                <i className="fas fa-dollar-sign"></i>
+                            </div>
+                            <div className="stat-content">
+                                <h3>库存价值</h3>
+                                <p className="stat-value" style={{ color: '#16a34a' }}>
+                                    RM{stats.stockValue.toFixed(2)}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="stat-card">
+                            <div className="stat-icon" style={{ color: '#f59e0b' }}>
+                                <i className="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div className="stat-content">
+                                <h3>低库存商品</h3>
+                                <p className="stat-value" style={{ color: '#f59e0b' }}>
+                                    {stats.lowStockCount}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="stat-card">
+                            <div className="stat-icon" style={{ color: '#ef4444' }}>
+                                <i className="fas fa-times-circle"></i>
+                            </div>
+                            <div className="stat-content">
+                                <h3>缺货商品</h3>
+                                <p className="stat-value" style={{ color: '#ef4444' }}>
+                                    {stats.outOfStockCount}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* 库存详情表格 */}
+                    <div className="card">
+                        <div className="card__body">
+                            <h3 className="text-lg font-semibold mb-4">产品库存详情</h3>
+                            <div className="overflow-x-auto">
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>商品</th>
+                                            <th>分类</th>
+                                            <th>价格</th>
+                                            <th>库存状态</th>
+                                            <th>当前库存</th>
+                                            <th>最低库存</th>
+                                            <th>状态</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {products.map(product => {
+                                            const stock = product.stock_quantity ?? 0;
+                                            const threshold = product.min_stock_threshold ?? 5;
+                                            const isLowStock = !product.is_unlimited && stock <= threshold && stock > 0;
+                                            const isOutOfStock = !product.is_unlimited && stock === 0;
+                                            
+                                            return (
+                                                <tr key={product.id}>
+                                                    <td>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-lg">{product.emoji || '🍽️'}</span>
+                                                            <span className="font-medium">{product.name}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>{product.category || '-'}</td>
+                                                    <td className="font-medium text-primary">
+                                                        RM{Number(product.price || 0).toFixed(2)}
+                                                    </td>
+                                                    <td>
+                                                        {product.is_unlimited ? (
+                                                            <span className="status status--success">
+                                                                <i className="fas fa-infinity mr-1"></i>预购
+                                                            </span>
+                                                        ) : isOutOfStock ? (
+                                                            <span className="status status--error">
+                                                                <i className="fas fa-times-circle mr-1"></i>缺货
+                                                            </span>
+                                                        ) : isLowStock ? (
+                                                            <span className="status status--warning">
+                                                                <i className="fas fa-exclamation-triangle mr-1"></i>低库存
+                                                            </span>
+                                                        ) : (
+                                                            <span className="status status--success">
+                                                                <i className="fas fa-check-circle mr-1"></i>正常
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td>
+                                                        {product.is_unlimited ? '无限制' : stock}
+                                                    </td>
+                                                    <td>
+                                                        {product.is_unlimited ? '-' : threshold}
+                                                    </td>
+                                                    <td>
+                                                        <span className={`status ${
+                                                            product.is_published ? 'status--success' : 'status--warning'
+                                                        }`}>
+                                                            {product.is_published ? '已上架' : '已下架'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                                
+                                {products.length === 0 && (
+                                    <div className="empty-state">
+                                        <div className="empty-state-icon">📦</div>
+                                        <p>暂无产品数据</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             );
@@ -3545,17 +3721,206 @@
             );
         };
         
-        // 👥 会员管理组件 (简化版)
+        // 👥 完整会员管理组件
         const MembersManager = () => {
+            const [members, setMembers] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [stats, setStats] = useState({
+                totalMembers: 0,
+                activeMembers: 0,
+                totalPoints: 0,
+                avgOrderValue: 0
+            });
+            
+            const fetchMembersData = useCallback(async () => {
+                setLoading(true);
+                try {
+                    const [membersResult, ordersResult] = await Promise.all([
+                        supabase.from('members').select('*').order('created_at', { ascending: false }),
+                        supabase.from('orders').select('*')
+                    ]);
+                    
+                    const members = membersResult.data || [];
+                    const orders = ordersResult.data || [];
+                    
+                    // 计算会员统计
+                    const totalMembers = members.length;
+                    const activeMembers = members.filter(m => 
+                        orders.some(o => o.phone === m.phone)
+                    ).length;
+                    const totalPoints = members.reduce((sum, m) => sum + (m.points || 0), 0);
+                    const totalOrderValue = orders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+                    const avgOrderValue = orders.length > 0 ? totalOrderValue / orders.length : 0;
+                    
+                    // 为每个会员计算订单统计
+                    const membersWithStats = members.map(member => {
+                        const memberOrders = orders.filter(o => o.phone === member.phone);
+                        const totalSpent = memberOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+                        const orderCount = memberOrders.length;
+                        
+                        return {
+                            ...member,
+                            orderCount,
+                            totalSpent,
+                            lastOrderDate: memberOrders.length > 0 ? 
+                                new Date(Math.max(...memberOrders.map(o => new Date(o.created_at)))).toISOString() : 
+                                null
+                        };
+                    });
+                    
+                    setMembers(membersWithStats);
+                    setStats({ totalMembers, activeMembers, totalPoints, avgOrderValue });
+                } catch (error) {
+                    console.error('加载会员数据失败:', error);
+                } finally {
+                    setLoading(false);
+                }
+            }, []);
+            
+            useEffect(() => {
+                if (window.MEMBER_CONFIG.ENABLE_MEMBER_SYSTEM) {
+                    fetchMembersData();
+                } else {
+                    setLoading(false);
+                }
+            }, [fetchMembersData]);
+            
+            if (!window.MEMBER_CONFIG.ENABLE_MEMBER_SYSTEM) {
+                return (
+                    <div className="space-y-6">
+                        <div className="page-header">
+                            <h2 className="page-title">👥 会员管理</h2>
+                            <p className="page-subtitle">会员系统未启用</p>
+                        </div>
+                        <div className="card">
+                            <div className="card__body text-center py-8">
+                                <i className="fas fa-toggle-off text-4xl text-gray-400 mb-4"></i>
+                                <p className="text-gray-600">会员系统功能已关闭</p>
+                                <p className="text-sm text-gray-500 mt-2">
+                                    请在配置中启用 MEMBER_CONFIG.ENABLE_MEMBER_SYSTEM
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+            
+            if (loading) {
+                return <LoadingSpinner text="加载会员数据..." />;
+            }
+            
             return (
                 <div className="space-y-6">
                     <div className="page-header">
                         <h2 className="page-title">👥 会员管理</h2>
                         <p className="page-subtitle">管理会员信息和积分系统</p>
                     </div>
-                    <div className="text-center p-8 text-gray-500">
-                        <i className="fas fa-hammer text-4xl mb-4"></i>
-                        <p>会员管理功能正在构建中...</p>
+                    
+                    {/* 会员统计卡片 */}
+                    <div className="stats-grid">
+                        <div className="stat-card">
+                            <div className="stat-icon" style={{ color: '#8b5cf6' }}>
+                                <i className="fas fa-users"></i>
+                            </div>
+                            <div className="stat-content">
+                                <h3>注册会员</h3>
+                                <p className="stat-value" style={{ color: '#8b5cf6' }}>
+                                    {stats.totalMembers}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="stat-card">
+                            <div className="stat-icon" style={{ color: '#16a34a' }}>
+                                <i className="fas fa-user-check"></i>
+                            </div>
+                            <div className="stat-content">
+                                <h3>活跃会员</h3>
+                                <p className="stat-value" style={{ color: '#16a34a' }}>
+                                    {stats.activeMembers}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="stat-card">
+                            <div className="stat-icon" style={{ color: '#f59e0b' }}>
+                                <i className="fas fa-star"></i>
+                            </div>
+                            <div className="stat-content">
+                                <h3>总积分</h3>
+                                <p className="stat-value" style={{ color: '#f59e0b' }}>
+                                    {stats.totalPoints}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="stat-card">
+                            <div className="stat-icon" style={{ color: '#2563eb' }}>
+                                <i className="fas fa-chart-line"></i>
+                            </div>
+                            <div className="stat-content">
+                                <h3>平均订单价值</h3>
+                                <p className="stat-value" style={{ color: '#2563eb' }}>
+                                    RM{stats.avgOrderValue.toFixed(2)}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* 会员列表 */}
+                    <div className="card">
+                        <div className="card__body">
+                            <h3 className="text-lg font-semibold mb-4">会员列表</h3>
+                            <div className="overflow-x-auto">
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>姓名</th>
+                                            <th>电话</th>
+                                            <th>积分</th>
+                                            <th>订单数</th>
+                                            <th>消费总额</th>
+                                            <th>最后订单</th>
+                                            <th>注册时间</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {members.map(member => (
+                                            <tr key={member.id}>
+                                                <td className="font-medium">{member.name}</td>
+                                                <td>{member.phone}</td>
+                                                <td>
+                                                    <span className="status status--warning">
+                                                        <i className="fas fa-star mr-1"></i>
+                                                        {member.points || 0}
+                                                    </span>
+                                                </td>
+                                                <td>{member.orderCount}</td>
+                                                <td className="font-medium text-primary">
+                                                    RM{member.totalSpent.toFixed(2)}
+                                                </td>
+                                                <td className="text-sm text-gray-500">
+                                                    {member.lastOrderDate ? 
+                                                        new Date(member.lastOrderDate).toLocaleDateString('zh-CN') : 
+                                                        '无订单'
+                                                    }
+                                                </td>
+                                                <td className="text-sm text-gray-500">
+                                                    {new Date(member.created_at).toLocaleDateString('zh-CN')}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                
+                                {members.length === 0 && (
+                                    <div className="empty-state">
+                                        <div className="empty-state-icon">👥</div>
+                                        <p>暂无会员数据</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             );
