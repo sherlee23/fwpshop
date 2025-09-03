@@ -1953,23 +1953,1658 @@
             }
         };
         
-        // 🔧 管理后台布局 (简化版本，完整版本将在下一步添加)
+        // 🔧 完整管理后台布局
         const AdminLayout = ({ user, onLogout }) => {
+            const [activeView, setActiveView] = useState('dashboard');
+            const [sidebarOpen, setSidebarOpen] = useState(false);
+            
+            // 管理后台菜单项
+            const adminMenuItems = [
+                { id: 'dashboard', icon: 'chart-line', title: '仪表盘', component: Dashboard },
+                { id: 'products', icon: 'pizza-slice', title: '产品管理', component: ProductsManager },
+                { id: 'inventory', icon: 'boxes', title: '库存管理', component: InventoryManager },
+                { id: 'orders', icon: 'list', title: '订单管理', component: OrdersManager },
+                { id: 'analytics', icon: 'chart-pie', title: '数据分析', component: Analytics },
+                { id: 'scanner', icon: 'qrcode', title: '扫码功能', component: Scanner },
+                { id: 'camera', icon: 'camera', title: '拍照功能', component: Camera }
+            ];
+            
+            // 如果启用会员系统，添加会员管理
+            if (window.MEMBER_CONFIG.ENABLE_MEMBER_BACKEND) {
+                adminMenuItems.splice(4, 0, {
+                    id: 'members', icon: 'users', title: '会员管理', component: MembersManager
+                });
+            }
+            
+            const currentComponent = adminMenuItems.find(item => item.id === activeView)?.component || Dashboard;
+            
             return (
-                <div className="text-center p-8">
-                    <h1 className="text-3xl font-bold text-primary mb-4">
-                        🔧 管理后台
-                    </h1>
-                    <p className="text-text-secondary mb-6">
-                        欢迎，{user?.role || '管理员'}！完整后台功能正在构建中...
-                    </p>
-                    <button 
-                        className="btn btn--secondary"
-                        onClick={onLogout}
-                    >
-                        <i className="fas fa-sign-out-alt mr-2"></i>
-                        退出登录
-                    </button>
+                <div className="admin-layout">
+                    {/* 移动端侧边栏覆盖层 */}
+                    {sidebarOpen && (
+                        <div
+                            className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+                            onClick={() => setSidebarOpen(false)}
+                        />
+                    )}
+                    
+                    {/* 侧边栏 */}
+                    <aside className={`admin-sidebar fixed md:static top-0 left-0 h-full z-50 transform transition-transform duration-300 ease-in-out ${
+                        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+                    } md:translate-x-0`}>
+                        {/* 移动端侧边栏头部 */}
+                        <div className="flex justify-between items-center p-4 md:hidden border-b border-border">
+                            <span className="font-bold text-gray-800">管理菜单</span>
+                            <button 
+                                onClick={() => setSidebarOpen(false)}
+                                className="p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+                            >
+                                <i className="fas fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        {/* 导航菜单 */}
+                        <nav className="admin-nav">
+                            {adminMenuItems.map(item => (
+                                <div
+                                    key={item.id}
+                                    className={`admin-nav-item ${activeView === item.id ? 'active' : ''}`}
+                                    onClick={() => {
+                                        setActiveView(item.id);
+                                        setSidebarOpen(false);
+                                    }}
+                                >
+                                    <i className={`fas fa-${item.icon} admin-nav-icon`}></i>
+                                    <span>{item.title}</span>
+                                </div>
+                            ))}
+                        </nav>
+                    </aside>
+                    
+                    {/* 主要内容区域 */}
+                    <div className="flex-1 flex flex-col">
+                        {/* 头部 */}
+                        <header className="bg-surface border-b border-border px-6 py-4">
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                    {/* 移动端菜单按钮 */}
+                                    <button 
+                                        onClick={() => setSidebarOpen(true)} 
+                                        className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+                                    >
+                                        <i className="fas fa-bars text-xl"></i>
+                                    </button>
+                                    <span className="text-2xl">🍽️</span>
+                                    <h1 className="text-xl font-bold">锋味派管理后台</h1>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <button 
+                                        onClick={() => window.location.reload()} 
+                                        className="btn btn--secondary btn-sm"
+                                    >
+                                        <i className="fas fa-store mr-2"></i>返回客户端
+                                    </button>
+                                    <span className="text-sm text-gray-500 hidden sm:inline">
+                                        管理员
+                                    </span>
+                                    <button 
+                                        onClick={onLogout} 
+                                        className="btn btn--secondary btn-sm"
+                                    >
+                                        <i className="fas fa-sign-out-alt mr-2"></i>退出
+                                    </button>
+                                </div>
+                            </div>
+                        </header>
+                        
+                        {/* 内容区 */}
+                        <main className="admin-content">
+                            {React.createElement(currentComponent, { setActiveView })}
+                        </main>
+                    </div>
+                </div>
+            );
+        };
+        
+        // 📊 仪表盘组件
+        const Dashboard = ({ setActiveView }) => {
+            const [stats, setStats] = useState({
+                todaySales: 0,
+                monthSales: 0,
+                todayOrders: 0,
+                pendingOrders: 0,
+                totalProducts: 0,
+                lowStockProducts: 0,
+                totalMembers: 0,
+                outOfStockProducts: 0
+            });
+            const [presaleStats, setPresaleStats] = useState({
+                totalBoxes: 0,
+                completedGroups: 0,
+                remainingBoxes: 0
+            });
+            const [loading, setLoading] = useState(true);
+            
+            useEffect(() => {
+                const fetchStats = async () => {
+                    try {
+                        // 获取今日和本月数据
+                        const today = new Date().toISOString().slice(0, 10);
+                        const monthStart = new Date();
+                        monthStart.setDate(1);
+                        
+                        const [ordersResult, productsResult, membersResult] = await Promise.all([
+                            supabase.from('orders').select('*').order('created_at', { ascending: false }),
+                            supabase.from('products').select('*'),
+                            window.MEMBER_CONFIG.ENABLE_MEMBER_SYSTEM ? 
+                                supabase.from('members').select('*') : 
+                                Promise.resolve({ data: [] })
+                        ]);
+                        
+                        const orders = ordersResult.data || [];
+                        const products = productsResult.data || [];
+                        const members = membersResult.data || [];
+                        
+                        // 计算今日订单
+                        const todayOrders = orders.filter(o => 
+                            o.created_at && o.created_at.startsWith(today)
+                        );
+                        
+                        // 计算本月订单
+                        const monthOrders = orders.filter(o => 
+                            o.created_at && o.created_at >= monthStart.toISOString()
+                        );
+                        
+                        // 计算待处理订单
+                        const pendingOrders = orders.filter(o => o.status === 'pending');
+                        
+                        // 计算库存统计
+                        const lowStockProducts = products.filter(p => 
+                            !p.is_unlimited && (p.stock_quantity || 0) <= (p.min_stock_threshold || 5)
+                        );
+                        
+                        const outOfStockProducts = products.filter(p => 
+                            !p.is_unlimited && (p.stock_quantity || 0) === 0
+                        );
+                        
+                        // 计算预售统计
+                        let totalPresaleBoxes = 0;
+                        orders.forEach(order => {
+                            (order.order_items || []).forEach(item => {
+                                if (item.product && !item.product.includes('运费')) {
+                                    const product = products.find(p => p.name === item.product);
+                                    if (product && product.is_unlimited) {
+                                        totalPresaleBoxes += item.quantity || 0;
+                                    }
+                                }
+                            });
+                        });
+                        
+                        const completedGroups = Math.floor(totalPresaleBoxes / 200);
+                        const remainingBoxes = 200 - (totalPresaleBoxes % 200);
+                        
+                        setStats({
+                            todaySales: todayOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0),
+                            monthSales: monthOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0),
+                            todayOrders: todayOrders.length,
+                            pendingOrders: pendingOrders.length,
+                            totalProducts: products.filter(p => p.is_published).length,
+                            lowStockProducts: lowStockProducts.length,
+                            totalMembers: members.length,
+                            outOfStockProducts: outOfStockProducts.length
+                        });
+                        
+                        setPresaleStats({
+                            totalBoxes: totalPresaleBoxes,
+                            completedGroups,
+                            remainingBoxes: remainingBoxes === 200 ? 0 : remainingBoxes
+                        });
+                    } catch (error) {
+                        console.error('获取统计数据失败:', error);
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+                
+                fetchStats();
+            }, []);
+            
+            if (loading) {
+                return <LoadingSpinner text="加载仪表盘数据..." />;
+            }
+            
+            return (
+                <div className="space-y-6">
+                    <div className="page-header">
+                        <div>
+                            <h2 className="page-title">📊 仪表盘</h2>
+                            <p className="page-subtitle">系统概览和关键指标</p>
+                        </div>
+                    </div>
+                    
+                    {/* 预售成团统计 */}
+                    <div className="card" style={{
+                        background: 'linear-gradient(135deg, #ec4899, #f43f5e)',
+                        color: 'white'
+                    }}>
+                        <div className="card__body">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-2xl">👥</span>
+                                    <h3 className="text-xl font-bold">预售成团统计</h3>
+                                </div>
+                                <div className="text-sm bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                                    每200盒成团
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="bg-white bg-opacity-10 rounded-lg p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm font-medium opacity-90">已成团数</p>
+                                            <p className="text-2xl font-bold">{presaleStats.completedGroups}团</p>
+                                        </div>
+                                        <i className="fas fa-check-circle text-2xl opacity-80"></i>
+                                    </div>
+                                </div>
+                                <div className="bg-white bg-opacity-10 rounded-lg p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm font-medium opacity-90">总售出数量</p>
+                                            <p className="text-2xl font-bold">{presaleStats.totalBoxes}盒</p>
+                                        </div>
+                                        <i className="fas fa-box text-2xl opacity-80"></i>
+                                    </div>
+                                </div>
+                                <div className="bg-white bg-opacity-10 rounded-lg p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm font-medium opacity-90">下一团还需</p>
+                                            <p className="text-2xl font-bold">{presaleStats.remainingBoxes}盒</p>
+                                        </div>
+                                        <i className="fas fa-hourglass-half text-2xl opacity-80"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* 关键指标 */}
+                    <div className="stats-grid">
+                        <div className="stat-card">
+                            <div className="stat-icon" style={{ color: '#16a34a' }}>
+                                <i className="fas fa-chart-line"></i>
+                            </div>
+                            <div className="stat-content">
+                                <h3>今日销售额</h3>
+                                <p className="stat-value" style={{ color: '#16a34a' }}>
+                                    RM{stats.todaySales.toFixed(2)}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="stat-card">
+                            <div className="stat-icon" style={{ color: '#2563eb' }}>
+                                <i className="fas fa-calendar-alt"></i>
+                            </div>
+                            <div className="stat-content">
+                                <h3>本月销售额</h3>
+                                <p className="stat-value" style={{ color: '#2563eb' }}>
+                                    RM{stats.monthSales.toFixed(2)}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="stat-card">
+                            <div className="stat-icon" style={{ color: '#8b5cf6' }}>
+                                <i className="fas fa-shopping-cart"></i>
+                            </div>
+                            <div className="stat-content">
+                                <h3>今日订单</h3>
+                                <p className="stat-value" style={{ color: '#8b5cf6' }}>
+                                    {stats.todayOrders}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="stat-card" style={{ cursor: 'pointer' }} 
+                             onClick={() => setActiveView('orders')}>
+                            <div className="stat-icon" style={{ color: '#f59e0b' }}>
+                                <i className="fas fa-clock"></i>
+                            </div>
+                            <div className="stat-content">
+                                <h3>待处理订单</h3>
+                                <p className="stat-value" style={{ color: '#f59e0b' }}>
+                                    {stats.pendingOrders}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="stat-card" style={{ cursor: 'pointer' }} 
+                             onClick={() => setActiveView('products')}>
+                            <div className="stat-icon" style={{ color: '#06b6d4' }}>
+                                <i className="fas fa-store"></i>
+                            </div>
+                            <div className="stat-content">
+                                <h3>上架商品</h3>
+                                <p className="stat-value" style={{ color: '#06b6d4' }}>
+                                    {stats.totalProducts}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="stat-card" style={{ cursor: 'pointer' }} 
+                             onClick={() => setActiveView('inventory')}>
+                            <div className="stat-icon" style={{ color: '#ef4444' }}>
+                                <i className="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div className="stat-content">
+                                <h3>缺货商品</h3>
+                                <p className="stat-value" style={{ color: '#ef4444' }}>
+                                    {stats.outOfStockProducts}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="stat-card" style={{ cursor: 'pointer' }} 
+                             onClick={() => setActiveView('inventory')}>
+                            <div className="stat-icon" style={{ color: '#f59e0b' }}>
+                                <i className="fas fa-battery-quarter"></i>
+                            </div>
+                            <div className="stat-content">
+                                <h3>低库存商品</h3>
+                                <p className="stat-value" style={{ color: '#f59e0b' }}>
+                                    {stats.lowStockProducts}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        {window.MEMBER_CONFIG.ENABLE_MEMBER_SYSTEM && (
+                            <div className="stat-card" style={{ cursor: 'pointer' }} 
+                                 onClick={() => setActiveView('members')}>
+                                <div className="stat-icon" style={{ color: '#8b5cf6' }}>
+                                    <i className="fas fa-users"></i>
+                                </div>
+                                <div className="stat-content">
+                                    <h3>注册会员</h3>
+                                    <p className="stat-value" style={{ color: '#8b5cf6' }}>
+                                        {stats.totalMembers}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* 快捷操作 */}
+                    <div className="card">
+                        <div className="card__body">
+                            <h3 className="text-lg font-semibold mb-4">快捷操作</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <button 
+                                    onClick={() => setActiveView('orders')} 
+                                    className="flex flex-col items-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                                >
+                                    <i className="fas fa-list text-2xl text-blue-600 mb-2"></i>
+                                    <span className="text-sm font-medium text-blue-700">查看订单</span>
+                                </button>
+                                
+                                <button 
+                                    onClick={() => setActiveView('products')} 
+                                    className="flex flex-col items-center p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+                                >
+                                    <i className="fas fa-pizza-slice text-2xl text-green-600 mb-2"></i>
+                                    <span className="text-sm font-medium text-green-700">管理商品</span>
+                                </button>
+                                
+                                <button 
+                                    onClick={() => setActiveView('inventory')} 
+                                    className="flex flex-col items-center p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
+                                >
+                                    <i className="fas fa-boxes text-2xl text-purple-600 mb-2"></i>
+                                    <span className="text-sm font-medium text-purple-700">库存管理</span>
+                                </button>
+                                
+                                <button 
+                                    onClick={() => setActiveView('analytics')} 
+                                    className="flex flex-col items-center p-4 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors"
+                                >
+                                    <i className="fas fa-chart-pie text-2xl text-orange-600 mb-2"></i>
+                                    <span className="text-sm font-medium text-orange-700">数据分析</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        // 📦 完整产品管理组件
+        const ProductsManager = () => {
+            const [products, setProducts] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [categoryFilter, setCategoryFilter] = useState('');
+            const [editingProduct, setEditingProduct] = useState(null);
+            const [showAddForm, setShowAddForm] = useState(false);
+            const [toast, setToast] = useState(null);
+            
+            const showToast = (message, type = 'success') => {
+                setToast({ message, type });
+                setTimeout(() => setToast(null), 3000);
+            };
+            
+            const fetchProducts = useCallback(async () => {
+                setLoading(true);
+                try {
+                    const { data, error } = await supabase
+                        .from('products')
+                        .select('*')
+                        .order('id');
+                    
+                    if (error) throw error;
+                    setProducts(data || []);
+                } catch (error) {
+                    console.error('加载产品失败:', error);
+                    showToast('加载产品失败: ' + error.message, 'error');
+                } finally {
+                    setLoading(false);
+                }
+            }, []);
+            
+            useEffect(() => {
+                fetchProducts();
+            }, [fetchProducts]);
+            
+            // 过滤产品
+            const filteredProducts = useMemo(() => {
+                return products.filter(product => {
+                    const matchesSearch = !searchTerm || 
+                        product.name.toLowerCase().includes(searchTerm.toLowerCase());
+                    const matchesCategory = !categoryFilter || 
+                        product.category === categoryFilter;
+                    return matchesSearch && matchesCategory;
+                });
+            }, [products, searchTerm, categoryFilter]);
+            
+            // 获取所有分类
+            const categories = useMemo(() => {
+                return [...new Set(products.map(p => p.category).filter(Boolean))];
+            }, [products]);
+            
+            // 删除产品
+            const handleDelete = async (id) => {
+                if (!confirm('确定要删除这个产品吗？')) return;
+                
+                try {
+                    const { error } = await supabase
+                        .from('products')
+                        .delete()
+                        .eq('id', id);
+                    
+                    if (error) throw error;
+                    showToast('产品删除成功', 'success');
+                    fetchProducts();
+                } catch (error) {
+                    console.error('删除产品失败:', error);
+                    showToast('删除产品失败: ' + error.message, 'error');
+                }
+            };
+            
+            // 切换产品状态
+            const toggleProductStatus = async (product, field) => {
+                try {
+                    const { error } = await supabase
+                        .from('products')
+                        .update({ [field]: !product[field] })
+                        .eq('id', product.id);
+                    
+                    if (error) throw error;
+                    showToast(`产品${field === 'is_published' ? '发布状态' : '状态'}已更新`, 'success');
+                    fetchProducts();
+                } catch (error) {
+                    console.error('更新产品状态失败:', error);
+                    showToast('更新状态失败: ' + error.message, 'error');
+                }
+            };
+            
+            if (loading) {
+                return <LoadingSpinner text="加载产品数据..." />;
+            }
+            
+            return (
+                <div className="space-y-6">
+                    <div className="page-header">
+                        <div>
+                            <h2 className="page-title">📦 产品管理</h2>
+                            <p className="page-subtitle">管理商品信息、库存和状态 ({products.length})</p>
+                        </div>
+                        <button
+                            onClick={() => setShowAddForm(true)}
+                            className="btn btn--primary"
+                        >
+                            <i className="fas fa-plus mr-2"></i>添加产品
+                        </button>
+                    </div>
+                    
+                    {/* 搜索和过滤工具栏 */}
+                    <div className="toolbar">
+                        <div className="toolbar-left">
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="text"
+                                    placeholder="搜索产品名称..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="form-control"
+                                    style={{ minWidth: '200px' }}
+                                />
+                                <select
+                                    value={categoryFilter}
+                                    onChange={(e) => setCategoryFilter(e.target.value)}
+                                    className="form-control"
+                                >
+                                    <option value="">全部分类</option>
+                                    {categories.map(category => (
+                                        <option key={category} value={category}>{category}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                        <div className="toolbar-right">
+                            <button
+                                onClick={fetchProducts}
+                                className="btn btn--secondary"
+                            >
+                                <i className="fas fa-sync-alt mr-2"></i>刷新
+                            </button>
+                        </div>
+                    </div>
+                    
+                    {/* 产品表格 */}
+                    <div className="card">
+                        <div className="overflow-x-auto">
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>商品</th>
+                                        <th>价格</th>
+                                        <th>库存</th>
+                                        <th>分类</th>
+                                        <th>类型</th>
+                                        <th>状态</th>
+                                        <th>发布</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredProducts.map(product => (
+                                        <tr key={product.id}>
+                                            <td>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-2xl">
+                                                        {product.emoji || '🍽️'}
+                                                    </span>
+                                                    <div>
+                                                        <div className="font-medium">{product.name}</div>
+                                                        {product.image_url && (
+                                                            <div className="text-xs text-gray-500">有图片</div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="font-medium text-primary">
+                                                RM{Number(product.price || 0).toFixed(2)}
+                                            </td>
+                                            <td>
+                                                {product.is_unlimited ? (
+                                                    <span className="status status--success">
+                                                        <i className="fas fa-infinity mr-1"></i>无限制
+                                                    </span>
+                                                ) : (
+                                                    <span className={`font-medium ${
+                                                        (product.stock_quantity ?? 0) === 0 ? 'text-red-600' :
+                                                        (product.stock_quantity ?? 0) <= (product.min_stock_threshold ?? 5) ? 'text-orange-600' :
+                                                        'text-green-600'
+                                                    }`}>
+                                                        {product.stock_quantity ?? 0}
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td>{product.category || '-'}</td>
+                                            <td>
+                                                <span className={`status ${
+                                                    product.is_unlimited ? 'status--info' : 'status--success'
+                                                }`}>
+                                                    {product.is_unlimited ? '预购' : '现货'}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <label className="toggle-switch">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={product.status === 'active'}
+                                                        onChange={() => toggleProductStatus(product, 'status')}
+                                                    />
+                                                    <span className="toggle-slider"></span>
+                                                </label>
+                                            </td>
+                                            <td>
+                                                <label className="toggle-switch">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={product.is_published || false}
+                                                        onChange={() => toggleProductStatus(product, 'is_published')}
+                                                    />
+                                                    <span className="toggle-slider"></span>
+                                                </label>
+                                            </td>
+                                            <td>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => setEditingProduct(product)}
+                                                        className="btn btn--secondary btn-sm"
+                                                    >
+                                                        <i className="fas fa-edit"></i>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(product.id)}
+                                                        className="btn btn--danger btn-sm"
+                                                    >
+                                                        <i className="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            
+                            {filteredProducts.length === 0 && (
+                                <div className="empty-state">
+                                    <div className="empty-state-icon">📦</div>
+                                    <p>没有找到符合条件的产品</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    
+                    {/* 编辑产品模态框 */}
+                    {editingProduct && (
+                        <ProductEditModal
+                            product={editingProduct}
+                            onSave={async (updatedProduct) => {
+                                try {
+                                    const { error } = await supabase
+                                        .from('products')
+                                        .update({
+                                            name: updatedProduct.name,
+                                            price: Number(updatedProduct.price),
+                                            category: updatedProduct.category,
+                                            emoji: updatedProduct.emoji,
+                                            stock_quantity: updatedProduct.is_unlimited ? null : Number(updatedProduct.stock_quantity || 0),
+                                            min_stock_threshold: Number(updatedProduct.min_stock_threshold || 5),
+                                            is_unlimited: updatedProduct.is_unlimited,
+                                            is_published: updatedProduct.is_published,
+                                            status: updatedProduct.status || 'active',
+                                            image_url: updatedProduct.image_url || null
+                                        })
+                                        .eq('id', updatedProduct.id);
+                                    
+                                    if (error) throw error;
+                                    showToast('产品更新成功', 'success');
+                                    setEditingProduct(null);
+                                    fetchProducts();
+                                } catch (error) {
+                                    console.error('更新产品失败:', error);
+                                    showToast('更新失败: ' + error.message, 'error');
+                                }
+                            }}
+                            onCancel={() => setEditingProduct(null)}
+                            showToast={showToast}
+                        />
+                    )}
+                    
+                    {/* 添加产品模态框 */}
+                    {showAddForm && (
+                        <ProductAddModal
+                            onSave={async (newProduct) => {
+                                try {
+                                    const { error } = await supabase
+                                        .from('products')
+                                        .insert([{
+                                            name: newProduct.name,
+                                            price: Number(newProduct.price),
+                                            category: newProduct.category || null,
+                                            emoji: newProduct.emoji || '🍽️',
+                                            stock_quantity: newProduct.is_unlimited ? null : Number(newProduct.stock_quantity || 0),
+                                            min_stock_threshold: Number(newProduct.min_stock_threshold || 5),
+                                            is_unlimited: newProduct.is_unlimited || false,
+                                            is_published: newProduct.is_published || false,
+                                            status: newProduct.status || 'active',
+                                            image_url: newProduct.image_url || null
+                                        }]);
+                                    
+                                    if (error) throw error;
+                                    showToast('产品添加成功', 'success');
+                                    setShowAddForm(false);
+                                    fetchProducts();
+                                } catch (error) {
+                                    console.error('添加产品失败:', error);
+                                    showToast('添加失败: ' + error.message, 'error');
+                                }
+                            }}
+                            onCancel={() => setShowAddForm(false)}
+                            showToast={showToast}
+                        />
+                    )}
+                    
+                    {/* Toast 通知 */}
+                    {toast && <Toast {...toast} onDismiss={() => setToast(null)} />}
+                </div>
+            );
+        };
+        
+        // 产品编辑模态框
+        const ProductEditModal = ({ product, onSave, onCancel, showToast }) => {
+            const [formData, setFormData] = useState({ ...product });
+            const [uploading, setUploading] = useState(false);
+            
+            const handleChange = (field, value) => {
+                setFormData(prev => ({ ...prev, [field]: value }));
+            };
+            
+            const handleImageUpload = async (file) => {
+                if (!file) return;
+                
+                setUploading(true);
+                try {
+                    const ext = file.name.split('.').pop();
+                    const filename = `products/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+                    
+                    const { error: uploadError } = await supabase.storage
+                        .from('product-photos')
+                        .upload(filename, file);
+                    
+                    if (uploadError) {
+                        throw new Error('图片上传失败: ' + uploadError.message);
+                    }
+                    
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('product-photos')
+                        .getPublicUrl(filename);
+                    
+                    handleChange('image_url', publicUrl);
+                    showToast('图片上传成功', 'success');
+                } catch (error) {
+                    showToast(error.message, 'error');
+                } finally {
+                    setUploading(false);
+                }
+            };
+            
+            const handleSubmit = () => {
+                if (!formData.name || !formData.price) {
+                    showToast('请填写商品名称和价格', 'error');
+                    return;
+                }
+                onSave(formData);
+            };
+            
+            return (
+                <div className="modal active">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h3 className="text-lg font-bold">编辑产品</h3>
+                            <button onClick={onCancel} className="text-gray-500 hover:text-gray-700">
+                                <i className="fas fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div className="modal-body space-y-4">
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div className="form-group">
+                                    <label className="form-label">商品名称 *</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        value={formData.name || ''}
+                                        onChange={(e) => handleChange('name', e.target.value)}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">表情符号</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        value={formData.emoji || ''}
+                                        onChange={(e) => handleChange('emoji', e.target.value)}
+                                        placeholder="🍽️"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div className="form-group">
+                                    <label className="form-label">价格 (RM) *</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        className="form-control"
+                                        value={formData.price || ''}
+                                        onChange={(e) => handleChange('price', e.target.value)}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">分类</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        value={formData.category || ''}
+                                        onChange={(e) => handleChange('category', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="form-group">
+                                <label className="form-label">商品图片</label>
+                                <div className="flex items-center gap-4">
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) => e.target.files[0] && handleImageUpload(e.target.files[0])}
+                                        className="hidden"
+                                        id="image-upload-edit"
+                                        disabled={uploading}
+                                    />
+                                    <label
+                                        htmlFor="image-upload-edit"
+                                        className={`btn btn--secondary ${uploading ? 'opacity-50' : ''}`}
+                                    >
+                                        {uploading ? '上传中...' : '更换图片'}
+                                    </label>
+                                    {formData.image_url && (
+                                        <img
+                                            src={formData.image_url}
+                                            alt="商品图片"
+                                            className="w-16 h-16 object-cover rounded-lg"
+                                        />
+                                    )}
+                                </div>
+                                {formData.image_url && (
+                                    <button
+                                        onClick={() => handleChange('image_url', '')}
+                                        className="text-red-600 text-xs mt-1 hover:underline"
+                                    >
+                                        删除图片
+                                    </button>
+                                )}
+                            </div>
+                            
+                            <div className="flex items-center gap-6">
+                                <label className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.is_unlimited || false}
+                                        onChange={(e) => handleChange('is_unlimited', e.target.checked)}
+                                    />
+                                    <span className="text-sm">预购商品（无限库存）</span>
+                                </label>
+                                <label className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.is_published || false}
+                                        onChange={(e) => handleChange('is_published', e.target.checked)}
+                                    />
+                                    <span className="text-sm">已上架</span>
+                                </label>
+                            </div>
+                            
+                            {!formData.is_unlimited && (
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <div className="form-group">
+                                        <label className="form-label">当前库存</label>
+                                        <input
+                                            type="number"
+                                            className="form-control"
+                                            value={formData.stock_quantity || 0}
+                                            onChange={(e) => handleChange('stock_quantity', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">最低库存提醒</label>
+                                        <input
+                                            type="number"
+                                            className="form-control"
+                                            value={formData.min_stock_threshold || 5}
+                                            onChange={(e) => handleChange('min_stock_threshold', e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        
+                        <div className="modal-footer">
+                            <button onClick={onCancel} className="btn btn--secondary">
+                                取消
+                            </button>
+                            <button onClick={handleSubmit} className="btn btn--primary">
+                                保存
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        // 产品添加模态框
+        const ProductAddModal = ({ onSave, onCancel, showToast }) => {
+            const [formData, setFormData] = useState({
+                name: '',
+                emoji: '🍽️',
+                price: '',
+                category: '',
+                is_unlimited: false,
+                is_published: false,
+                stock_quantity: 0,
+                min_stock_threshold: 5,
+                status: 'active',
+                image_url: ''
+            });
+            const [uploading, setUploading] = useState(false);
+            
+            const handleChange = (field, value) => {
+                setFormData(prev => ({ ...prev, [field]: value }));
+            };
+            
+            const handleImageUpload = async (file) => {
+                if (!file) return;
+                
+                setUploading(true);
+                try {
+                    const ext = file.name.split('.').pop();
+                    const filename = `products/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+                    
+                    const { error: uploadError } = await supabase.storage
+                        .from('product-photos')
+                        .upload(filename, file);
+                    
+                    if (uploadError) {
+                        throw new Error('图片上传失败: ' + uploadError.message);
+                    }
+                    
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('product-photos')
+                        .getPublicUrl(filename);
+                    
+                    handleChange('image_url', publicUrl);
+                    showToast('图片上传成功', 'success');
+                } catch (error) {
+                    showToast(error.message, 'error');
+                } finally {
+                    setUploading(false);
+                }
+            };
+            
+            const handleSubmit = () => {
+                if (!formData.name || !formData.price) {
+                    showToast('请填写商品名称和价格', 'error');
+                    return;
+                }
+                onSave(formData);
+            };
+            
+            return (
+                <div className="modal active">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h3 className="text-lg font-bold">添加新产品</h3>
+                            <button onClick={onCancel} className="text-gray-500 hover:text-gray-700">
+                                <i className="fas fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div className="modal-body space-y-4">
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div className="form-group">
+                                    <label className="form-label">商品名称 *</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        value={formData.name}
+                                        onChange={(e) => handleChange('name', e.target.value)}
+                                        placeholder="请输入商品名称"
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">表情符号</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        value={formData.emoji}
+                                        onChange={(e) => handleChange('emoji', e.target.value)}
+                                        placeholder="🍽️"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div className="form-group">
+                                    <label className="form-label">价格 (RM) *</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        className="form-control"
+                                        value={formData.price}
+                                        onChange={(e) => handleChange('price', e.target.value)}
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">分类</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        value={formData.category}
+                                        onChange={(e) => handleChange('category', e.target.value)}
+                                        placeholder="例如：烤肠系列"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="form-group">
+                                <label className="form-label">商品图片</label>
+                                <div className="flex items-center gap-4">
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) => e.target.files[0] && handleImageUpload(e.target.files[0])}
+                                        className="hidden"
+                                        id="image-upload-add"
+                                        disabled={uploading}
+                                    />
+                                    <label
+                                        htmlFor="image-upload-add"
+                                        className={`btn btn--success ${uploading ? 'opacity-50' : ''}`}
+                                    >
+                                        {uploading ? '上传中...' : '选择图片'}
+                                    </label>
+                                    {formData.image_url && (
+                                        <img
+                                            src={formData.image_url}
+                                            alt="预览"
+                                            className="w-16 h-16 object-cover rounded-lg"
+                                        />
+                                    )}
+                                </div>
+                                {formData.image_url && (
+                                    <button
+                                        onClick={() => handleChange('image_url', '')}
+                                        className="text-red-600 text-xs mt-1 hover:underline"
+                                    >
+                                        删除图片
+                                    </button>
+                                )}
+                            </div>
+                            
+                            <div className="flex items-center gap-6">
+                                <label className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.is_unlimited}
+                                        onChange={(e) => handleChange('is_unlimited', e.target.checked)}
+                                    />
+                                    <span className="text-sm">预购商品（无限库存）</span>
+                                </label>
+                                <label className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.is_published}
+                                        onChange={(e) => handleChange('is_published', e.target.checked)}
+                                    />
+                                    <span className="text-sm">立即上架</span>
+                                </label>
+                            </div>
+                            
+                            {!formData.is_unlimited && (
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <div className="form-group">
+                                        <label className="form-label">初始库存</label>
+                                        <input
+                                            type="number"
+                                            className="form-control"
+                                            value={formData.stock_quantity}
+                                            onChange={(e) => handleChange('stock_quantity', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">最低库存提醒</label>
+                                        <input
+                                            type="number"
+                                            className="form-control"
+                                            value={formData.min_stock_threshold}
+                                            onChange={(e) => handleChange('min_stock_threshold', e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        
+                        <div className="modal-footer">
+                            <button onClick={onCancel} className="btn btn--secondary">
+                                取消
+                            </button>
+                            <button onClick={handleSubmit} className="btn btn--primary" disabled={uploading}>
+                                添加产品
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        // 📊 库存管理组件 (简化版)
+        const InventoryManager = () => {
+            return (
+                <div className="space-y-6">
+                    <div className="page-header">
+                        <h2 className="page-title">📊 库存管理</h2>
+                        <p className="page-subtitle">监控库存状态和补货提醒</p>
+                    </div>
+                    <div className="text-center p-8 text-gray-500">
+                        <i className="fas fa-hammer text-4xl mb-4"></i>
+                        <p>库存管理功能正在构建中...</p>
+                    </div>
+                </div>
+            );
+        };
+        
+        // 📋 完整订单管理组件
+        const OrdersManager = () => {
+            const [orders, setOrders] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [filterStatus, setFilterStatus] = useState('');
+            const [filterDelivery, setFilterDelivery] = useState('');
+            const [searchText, setSearchText] = useState('');
+            const [updating, setUpdating] = useState(null);
+            const [toast, setToast] = useState(null);
+            const [modalOrder, setModalOrder] = useState(null);
+            const [uploadFile, setUploadFile] = useState(null);
+            
+            const showToast = (message, type = 'success') => {
+                setToast({ message, type });
+                setTimeout(() => setToast(null), 3000);
+            };
+            
+            const fetchOrders = useCallback(async () => {
+                setLoading(true);
+                try {
+                    const { data, error } = await supabase
+                        .from('orders')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+                    
+                    if (error) throw error;
+                    setOrders(data || []);
+                } catch (error) {
+                    console.error('加载订单失败:', error);
+                    showToast('加载订单失败: ' + error.message, 'error');
+                } finally {
+                    setLoading(false);
+                }
+            }, []);
+            
+            useEffect(() => {
+                fetchOrders();
+            }, [fetchOrders]);
+            
+            // 过滤订单
+            const filteredOrders = useMemo(() => {
+                return orders.filter(order => {
+                    const matchesStatus = !filterStatus || order.status === filterStatus;
+                    const matchesDelivery = !filterDelivery || order.delivery_method === filterDelivery;
+                    const matchesSearch = !searchText || 
+                        order.order_id.toLowerCase().includes(searchText.toLowerCase()) ||
+                        order.name.toLowerCase().includes(searchText.toLowerCase()) ||
+                        order.phone.toLowerCase().includes(searchText.toLowerCase());
+                    return matchesStatus && matchesDelivery && matchesSearch;
+                });
+            }, [orders, filterStatus, filterDelivery, searchText]);
+            
+            // 更新订单状态
+            const updateOrderStatus = async (orderId, newStatus) => {
+                setUpdating(orderId);
+                try {
+                    const { error } = await supabase
+                        .from('orders')
+                        .update({ status: newStatus })
+                        .eq('id', orderId);
+                    
+                    if (error) throw error;
+                    showToast('订单状态已更新', 'success');
+                    fetchOrders();
+                } catch (error) {
+                    console.error('更新订单状态失败:', error);
+                    showToast('状态更新失败: ' + error.message, 'error');
+                } finally {
+                    setUpdating(null);
+                }
+            };
+            
+            // 复制订单详情
+            const copyOrderDetails = async (order) => {
+                const orderMsg = buildOrderMessage(order).replace(/\*/g, '');
+                const success = await copyTextUniversal(orderMsg);
+                showToast(success ? '订单详情已复制' : '复制失败', success ? 'success' : 'error');
+            };
+            
+            // 打印订单
+            const printOrder = (order) => {
+                const printWindow = window.open('', '_blank', 'width=820,height=900');
+                if (!printWindow) {
+                    showToast('请允许弹窗', 'error');
+                    return;
+                }
+                
+                const doc = printWindow.document;
+                doc.open();
+                doc.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="utf-8">
+                        <title>订单 ${order.order_id}</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; margin: 16px; font-size: 16px; font-weight: bold; }
+                            h1 { font-size: 28px; margin: 0 0 12px; font-weight: bold; }
+                            div { font-size: 16px; margin: 6px 0; font-weight: bold; }
+                            table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+                            th, td { border: 2px solid #333; padding: 8px; font-size: 16px; font-weight: bold; }
+                            th { background: #f5f5f5; font-size: 18px; }
+                            .checkbox { width: 20px; height: 20px; border: 3px solid #333; display: inline-block; margin-left: 10px; }
+                            @media print { @page { margin: 10mm; } button { display: none; } }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>锋味派订单 #${order.order_id}</h1>
+                        <div>客户: ${order.name} (${order.phone})</div>
+                        <div>方式: ${order.delivery_method === 'self-pickup' ? '自取' : 'Lalamove送货'}</div>
+                        <div>备注: ${order.remarks || '无'}</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>商品</th>
+                                    <th style="width:120px;">数量 & 已打包</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${(order.order_items || []).map(item => 
+                                    `<tr>
+                                        <td>${item.product}</td>
+                                        <td style="text-align:center;">${item.quantity}<span class="checkbox"></span></td>
+                                    </tr>`
+                                ).join('')}
+                            </tbody>
+                        </table>
+                        <div style="margin-top:16px; border-top:2px solid #333; padding-top:10px; font-size:14px; color:#666; font-weight:bold;">
+                            打包完成后请在数量旁边的勾选框内打勾 ✓
+                        </div>
+                        <button onclick="window.print()" style="font-size:16px;font-weight:bold;padding:10px 20px;margin-top:16px;">打印</button>
+                    </body>
+                    </html>
+                `);
+                doc.close();
+            };
+            
+            // 上传运费凭证
+            const uploadShippingProof = async () => {
+                if (!uploadFile || !modalOrder) return;
+                
+                try {
+                    const ext = uploadFile.name.split('.').pop();
+                    const path = `proofs/${modalOrder.order_id}-shipping.${ext}`;
+                    
+                    const { error: uploadError } = await supabase.storage
+                        .from('payment-proofs')
+                        .upload(path, uploadFile, { upsert: true });
+                    
+                    if (uploadError) throw uploadError;
+                    
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('payment-proofs')
+                        .getPublicUrl(path);
+                    
+                    const { error: updateError } = await supabase
+                        .from('orders')
+                        .update({ shipping_payment_proof_url: publicUrl })
+                        .eq('order_id', modalOrder.order_id);
+                    
+                    if (updateError) throw updateError;
+                    
+                    showToast('运费凭证上传成功', 'success');
+                    setUploadFile(null);
+                    setModalOrder(null);
+                    fetchOrders();
+                } catch (error) {
+                    console.error('上传失败:', error);
+                    showToast('上传失败: ' + error.message, 'error');
+                }
+            };
+            
+            const getStatusDisplay = (status) => {
+                const statusMap = {
+                    'pending': '待处理',
+                    'ready for pick up': '待取货',
+                    'delivered': '已发货',
+                    'completed': '已完成',
+                    'cancelled': '已取消'
+                };
+                return statusMap[status] || status;
+            };
+            
+            const getStatusColor = (status) => {
+                const colorMap = {
+                    'pending': 'status--warning',
+                    'ready for pick up': 'status--info',
+                    'delivered': 'status--success',
+                    'completed': 'status--success',
+                    'cancelled': 'status--error'
+                };
+                return colorMap[status] || 'status--info';
+            };
+            
+            if (loading) {
+                return <LoadingSpinner text="加载订单数据..." />;
+            }
+            
+            return (
+                <div className="space-y-6">
+                    <div className="page-header">
+                        <div>
+                            <h2 className="page-title">📋 订单管理</h2>
+                            <p className="page-subtitle">
+                                处理和跟踪所有订单 ({filteredOrders.length}/{orders.length})
+                            </p>
+                        </div>
+                    </div>
+                    
+                    {/* 搜索和过滤工具栏 */}
+                    <div className="toolbar">
+                        <div className="toolbar-left">
+                            <div className="flex items-center gap-3 flex-wrap">
+                                <input
+                                    type="text"
+                                    placeholder="搜索订单号、客户姓名或电话"
+                                    value={searchText}
+                                    onChange={(e) => setSearchText(e.target.value)}
+                                    className="form-control"
+                                    style={{ minWidth: '250px' }}
+                                />
+                                <select
+                                    value={filterStatus}
+                                    onChange={(e) => setFilterStatus(e.target.value)}
+                                    className="form-control"
+                                >
+                                    <option value="">全部状态</option>
+                                    <option value="pending">待处理</option>
+                                    <option value="ready for pick up">待取货</option>
+                                    <option value="delivered">已发货</option>
+                                    <option value="completed">已完成</option>
+                                    <option value="cancelled">已取消</option>
+                                </select>
+                                <select
+                                    value={filterDelivery}
+                                    onChange={(e) => setFilterDelivery(e.target.value)}
+                                    className="form-control"
+                                >
+                                    <option value="">全部方式</option>
+                                    <option value="self-pickup">自取</option>
+                                    <option value="lalamove">Lalamove送货</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="toolbar-right">
+                            <button onClick={fetchOrders} className="btn btn--secondary">
+                                <i className="fas fa-sync-alt mr-2"></i>刷新
+                            </button>
+                        </div>
+                    </div>
+                    
+                    {/* 订单表格 */}
+                    <div className="card">
+                        <div className="overflow-x-auto">
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>订单号</th>
+                                        <th>客户信息</th>
+                                        <th>订单明细</th>
+                                        <th>金额</th>
+                                        <th>状态</th>
+                                        <th>下单时间</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredOrders.map(order => (
+                                        <tr key={order.id}>
+                                            <td>
+                                                <div>
+                                                    <span className="font-bold text-primary">{order.order_id}</span>
+                                                    <div className="text-xs text-gray-500 mt-1">
+                                                        {order.delivery_method === 'self-pickup' ? '自提' : 'Lalamove配送'}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <div className="font-medium">{order.name}</div>
+                                                    <div className="text-xs text-gray-500">{order.phone}</div>
+                                                    {order.remarks && (
+                                                        <div className="text-xs text-gray-500 mt-1">
+                                                            备注: {order.remarks}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="text-xs">
+                                                {(order.order_items || []).map((item, index) => (
+                                                    <div key={index} className="mb-1">
+                                                        <span className="mr-1">{item.emoji || '▫️'}</span>
+                                                        {item.product} × {item.quantity}
+                                                    </div>
+                                                ))}
+                                            </td>
+                                            <td>
+                                                <span className="font-bold text-primary">
+                                                    RM{Number(order.total_amount || 0).toFixed(2)}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {updating === order.id ? (
+                                                    <span className="text-xs">更新中...</span>
+                                                ) : (
+                                                    <div>
+                                                        <select
+                                                            className="text-xs border rounded px-2 py-1 bg-white mb-2"
+                                                            value={order.status}
+                                                            onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                                                        >
+                                                            <option value="pending">待处理</option>
+                                                            <option value="ready for pick up">待取货</option>
+                                                            <option value="delivered">已发货</option>
+                                                            <option value="completed">已完成</option>
+                                                            <option value="cancelled">已取消</option>
+                                                        </select>
+                                                        <div>
+                                                            <span className={`status ${getStatusColor(order.status)}`}>
+                                                                {getStatusDisplay(order.status)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="text-xs text-gray-500">
+                                                {new Date(order.created_at).toLocaleString('zh-CN')}
+                                            </td>
+                                            <td>
+                                                <div className="space-y-1 flex flex-col" style={{ minWidth: '120px' }}>
+                                                    {order.payment_proof_url && (
+                                                        <a
+                                                            href={order.payment_proof_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-blue-600 text-xs underline hover:text-blue-800"
+                                                        >
+                                                            支付凭证
+                                                        </a>
+                                                    )}
+                                                    <button
+                                                        onClick={() => copyOrderDetails(order)}
+                                                        className="btn btn--secondary btn-sm text-xs"
+                                                    >
+                                                        复制详情
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setModalOrder(order)}
+                                                        className="btn btn--primary btn-sm text-xs"
+                                                    >
+                                                        上传运费凭证
+                                                    </button>
+                                                    <button
+                                                        onClick={() => printOrder(order)}
+                                                        className="btn btn--success btn-sm text-xs"
+                                                    >
+                                                        打印订单
+                                                    </button>
+                                                    {order.shipping_payment_proof_url && (
+                                                        <a
+                                                            href={order.shipping_payment_proof_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-purple-600 text-xs underline hover:text-purple-800"
+                                                        >
+                                                            运费凭证
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            
+                            {filteredOrders.length === 0 && (
+                                <div className="empty-state">
+                                    <div className="empty-state-icon">📋</div>
+                                    <p>没有找到符合条件的订单</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    
+                    {/* 上传运费凭证模态框 */}
+                    {modalOrder && (
+                        <div className="modal active">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h3 className="font-semibold">
+                                        上传运费凭证 - {modalOrder.order_id}
+                                    </h3>
+                                    <button
+                                        onClick={() => {
+                                            setModalOrder(null);
+                                            setUploadFile(null);
+                                        }}
+                                        className="text-gray-500 hover:text-gray-700"
+                                    >
+                                        <i className="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <div className="modal-body space-y-3">
+                                    <input
+                                        type="file"
+                                        accept="image/*,.pdf"
+                                        onChange={(e) => setUploadFile(e.target.files[0])}
+                                        className="form-control"
+                                    />
+                                    <button
+                                        disabled={!uploadFile}
+                                        onClick={uploadShippingProof}
+                                        className="btn btn--primary w-full"
+                                    >
+                                        {uploadFile ? '上传凭证' : '请选择文件'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Toast 通知 */}
+                    {toast && <Toast {...toast} onDismiss={() => setToast(null)} />}
+                </div>
+            );
+        };
+        
+        // 👥 会员管理组件 (简化版)
+        const MembersManager = () => {
+            return (
+                <div className="space-y-6">
+                    <div className="page-header">
+                        <h2 className="page-title">👥 会员管理</h2>
+                        <p className="page-subtitle">管理会员信息和积分系统</p>
+                    </div>
+                    <div className="text-center p-8 text-gray-500">
+                        <i className="fas fa-hammer text-4xl mb-4"></i>
+                        <p>会员管理功能正在构建中...</p>
+                    </div>
+                </div>
+            );
+        };
+        
+        // 📈 数据分析组件 (简化版)
+        const Analytics = () => {
+            return (
+                <div className="space-y-6">
+                    <div className="page-header">
+                        <h2 className="page-title">📈 数据分析</h2>
+                        <p className="page-subtitle">销售报表和业务洞察</p>
+                    </div>
+                    <div className="text-center p-8 text-gray-500">
+                        <i className="fas fa-hammer text-4xl mb-4"></i>
+                        <p>数据分析功能正在构建中...</p>
+                    </div>
+                </div>
+            );
+        };
+        
+        // 📱 扫码功能组件 (简化版)
+        const Scanner = () => {
+            return (
+                <div className="space-y-6">
+                    <div className="page-header">
+                        <h2 className="page-title">📱 扫码功能</h2>
+                        <p className="page-subtitle">二维码和条形码扫描</p>
+                    </div>
+                    <div className="text-center p-8 text-gray-500">
+                        <i className="fas fa-hammer text-4xl mb-4"></i>
+                        <p>扫码功能正在构建中...</p>
+                    </div>
+                </div>
+            );
+        };
+        
+        // 📸 拍照功能组件 (简化版)
+        const Camera = () => {
+            return (
+                <div className="space-y-6">
+                    <div className="page-header">
+                        <h2 className="page-title">📸 拍照功能</h2>
+                        <p className="page-subtitle">商品拍照和图片管理</p>
+                    </div>
+                    <div className="text-center p-8 text-gray-500">
+                        <i className="fas fa-hammer text-4xl mb-4"></i>
+                        <p>拍照功能正在构建中...</p>
+                    </div>
                 </div>
             );
         };
