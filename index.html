@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="https://edfnhhthztskuuosuasw.supabase.co/storage/v1/object/public/product-photos/icon3.jpg">
     <title>FengWei Pai 管理后台系统</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" 
+            onload="resourceLoaded()" onerror="resourceFailed('Chart.js')"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js" 
+            onload="resourceLoaded()" onerror="resourceFailed('Supabase')"></script>
     <link rel="stylesheet" href="tailwind.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
@@ -81,9 +83,102 @@
     </style>
 </head>
 <body>
-    <div id="root"></div>
-    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <div id="root">
+        <!-- 加载中的备用内容 -->
+        <div style="min-height:100vh;background:linear-gradient(135deg,#dc2626 0%,#b91c1c 100%);display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,sans-serif;">
+            <div style="background:white;padding:2rem;border-radius:1rem;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);text-align:center;max-width:500px;margin:1rem;">
+                <div style="font-size:2rem;font-weight:bold;color:#dc2626;margin-bottom:1rem;">🍽️ FengWei Pai 锋味派</div>
+                <div style="font-size:1.2rem;color:#374151;margin-bottom:1.5rem;">美食团购系统</div>
+                <div style="color:#6b7280;margin-bottom:2rem;line-height:1.6;" id="loading-text">
+                    系统正在加载中，请稍候...
+                </div>
+                
+                <div style="background:#f3f4f6;padding:1.5rem;border-radius:0.5rem;margin:1.5rem 0;">
+                    <h3 style="font-weight:bold;margin-bottom:1rem;color:#1f2937;">📞 联系方式</h3>
+                    <div style="margin:0.5rem 0;color:#374151;">
+                        <strong>WhatsApp:</strong> 0162327792
+                    </div>
+                    <div style="margin:0.5rem 0;color:#374151;">
+                        <strong>自取地址:</strong><br>
+                        667, Jalan 24, Taman Perindustrian Ehsan Jaya,<br>
+                        Kepong, 52100, Kuala Lumpur.
+                    </div>
+                </div>
+                
+                <div id="action-buttons">
+                    <div style="margin:1rem 0;color:#6b7280;font-size:0.9rem;">
+                        如长时间无响应，请直接联系我们：
+                    </div>
+                    <a href="https://wa.me/60162327792?text=您好，我想订购锋味派美食" 
+                       style="background:#25d366;color:white;padding:0.75rem 1.5rem;border-radius:0.5rem;text-decoration:none;display:inline-block;margin:0.5rem;font-weight:bold;">
+                        WhatsApp 订购
+                    </a>
+                    <a href="javascript:location.reload()" 
+                       style="background:#6b7280;color:white;padding:0.75rem 1.5rem;border-radius:0.5rem;text-decoration:none;display:inline-block;margin:0.5rem;font-weight:bold;">
+                        刷新页面
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resource loading with error handling -->
+    <script>
+        let resourcesLoaded = 0;
+        let resourcesNeeded = 4;
+        let loadingStartTime = Date.now();
+
+        function updateLoadingText(text) {
+            const element = document.getElementById('loading-text');
+            if (element) element.textContent = text;
+        }
+
+        function resourceLoaded() {
+            resourcesLoaded++;
+            updateLoadingText(`正在加载资源... (${resourcesLoaded}/${resourcesNeeded})`);
+            if (resourcesLoaded === resourcesNeeded) {
+                setTimeout(() => {
+                    updateLoadingText('资源加载完成，正在初始化应用...');
+                    initializeFullApp();
+                }, 500);
+            }
+        }
+
+        function resourceFailed(resourceName) {
+            console.error(`资源加载失败: ${resourceName}`);
+            updateLoadingText('部分资源加载失败，如需订购请直接联系我们');
+        }
+
+        function initializeFullApp() {
+            // 检查所有必要的依赖是否已加载
+            if (typeof React === 'undefined' || typeof ReactDOM === 'undefined' || typeof window.supabase === 'undefined') {
+                updateLoadingText('系统资源不完整，请使用下方联系方式直接订购');
+                return;
+            }
+
+            try {
+                // 清空loading内容
+                document.getElementById('root').innerHTML = '';
+                // 初始化应用
+                initializeApp();
+            } catch (error) {
+                console.error('应用初始化失败:', error);
+                updateLoadingText('应用初始化失败，请联系管理员或直接下单');
+            }
+        }
+
+        // 15秒后如果仍未加载完成，显示备用联系信息
+        setTimeout(() => {
+            if (resourcesLoaded < resourcesNeeded) {
+                updateLoadingText('网络较慢或资源被阻止，请直接联系我们下单：');
+            }
+        }, 15000);
+    </script>
+
+    <script src="https://unpkg.com/react@17/umd/react.development.js" 
+            onload="resourceLoaded()" onerror="resourceFailed('React')"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" 
+            onload="resourceLoaded()" onerror="resourceFailed('ReactDOM')"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script type="text/babel">
