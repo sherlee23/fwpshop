@@ -41,21 +41,21 @@
     
     <!-- ===== 增强CSS样式 - 融合设计系统 ===== -->
     <style>
-        /* 设计系统变量 - 修复正确配色方案 */
+        /* 🎨 设计系统变量 - 确保正确的红色主题配色 */
         :root {
             --color-background: #f8fafc;
             --color-surface: #ffffff;
-            --color-text: #333333;
+            --color-text: #1f2937;
             --color-text-secondary: #6b7280;
             --color-primary: #dc2626;
             --color-primary-hover: #b91c1c;
             --color-primary-active: #991b1b;
-            --color-secondary: rgba(107, 114, 128, 0.12);
-            --color-border: #d1d5db;
+            --color-secondary: rgba(220, 38, 38, 0.1);
+            --color-border: #e5e7eb;
             --color-error: #dc2626;
             --color-success: #16a34a;
             --color-warning: #f59e0b;
-            --color-focus-ring: rgba(220, 38, 38, 0.4);
+            --color-focus-ring: rgba(220, 38, 38, 0.3);
             
             --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
             --font-size-sm: 0.875rem;
@@ -93,6 +93,23 @@
                 --color-primary: #ef4444;
                 --color-border: rgba(75, 85, 99, 0.3);
             }
+        }
+        
+        /* 🔧 确保红色主题正确应用到关键元素 */
+        .text-primary { color: var(--color-primary) !important; }
+        .bg-primary { background-color: var(--color-primary) !important; }
+        .border-primary { border-color: var(--color-primary) !important; }
+        
+        /* 修复可能的CSS冲突 */
+        .btn--primary {
+            background-color: var(--color-primary) !important;
+            border-color: var(--color-primary) !important;
+            color: white !important;
+        }
+        
+        .btn--primary:hover {
+            background-color: var(--color-primary-hover) !important;
+            border-color: var(--color-primary-hover) !important;
         }
         
         /* 基础样式重置 */
@@ -1181,10 +1198,11 @@
             const [loading, setLoading] = useState(true);
             const [activeCategory, setActiveCategory] = useState('全部商品');
             const [isCartOpen, setIsCartOpen] = useState(false);
+            const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
             const [toast, setToast] = useState(null);
             const [lastOrder, setLastOrder] = useState(null);
             
-            // 分类配置 - 基于产品系列的分类导航
+            // 分类配置 - 产品系列分类导航
             const categories = [
                 { id: 'all', name: '全部商品', emoji: '🍽️' },
                 { id: 'hot-meals', name: '热销套餐', emoji: '🔥' },
@@ -1195,6 +1213,7 @@
                 { id: 'seasoning', name: '调料', emoji: '🧂' },
                 { id: 'beverages', name: '饮料', emoji: '🥤' }
             ];
+            console.log('🏷️ 初始化分类导航:', categories.length, '个分类');
             
             const showToast = (message, type = 'success') => {
                 setToast({ message, type });
@@ -1237,6 +1256,7 @@
             
             // 过滤产品 - 基于产品系列分类
             const filteredProducts = useMemo(() => {
+                console.log('🔍 过滤产品，当前分类:', activeCategory, '总产品数:', products.length);
                 if (activeCategory === '全部商品') return products;
                 
                 // 根据产品分类字段进行筛选
@@ -1267,6 +1287,7 @@
             
             // 添加到购物车
             const addToCart = (product) => {
+                console.log('🛒 尝试添加商品到购物车:', product.name, '当前库存:', product.stock);
                 if (!product.is_unlimited && product.stock <= 0) {
                     showToast('商品已售罄', 'error');
                     return;
@@ -1429,6 +1450,8 @@
                                 setLastOrder={setLastOrder}
                                 setCart={setCart}
                                 refreshProducts={fetchProducts}
+                                isCheckoutOpen={isCheckoutOpen}
+                                setIsCheckoutOpen={setIsCheckoutOpen}
                             />
                         </>
                     )}
@@ -1441,6 +1464,19 @@
                                 setLastOrder(null);
                                 fetchProducts();
                             }}
+                        />
+                    )}
+                    
+                    {/* 结账模态框 */}
+                    {isCheckoutOpen && (
+                        <CheckoutModal
+                            cart={cart}
+                            total={cartTotal}
+                            onClose={() => setIsCheckoutOpen(false)}
+                            showToast={showToast}
+                            setLastOrder={setLastOrder}
+                            setCart={setCart}
+                            refreshProducts={fetchProducts}
                         />
                     )}
                     
@@ -1558,17 +1594,21 @@
         const CartSidebar = ({ 
             isOpen, cart, updateQuantity, removeFromCart, 
             totalPrice, totalItems, onClose, showToast,
-            setLastOrder, setCart, refreshProducts 
+            setLastOrder, setCart, refreshProducts,
+            isCheckoutOpen, setIsCheckoutOpen
         }) => {
-            const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
             
             const handleCheckout = () => {
+                console.log('🛒 开始结账流程，购物车内容:', cart);
                 if (cart.length === 0) {
                     showToast('购物车为空', 'error');
                     return;
                 }
+                // 先关闭购物车侧边栏，稍后打开结账窗口
                 onClose();
-                setIsCheckoutOpen(true);
+                setTimeout(() => {
+                    setIsCheckoutOpen(true);
+                }, 300);
             };
             
             return (
@@ -1632,19 +1672,6 @@
                             </footer>
                         )}
                     </div>
-                    
-                    {/* 结账模态框 */}
-                    {isCheckoutOpen && (
-                        <CheckoutModal
-                            cart={cart}
-                            total={totalPrice}
-                            onClose={() => setIsCheckoutOpen(false)}
-                            showToast={showToast}
-                            setLastOrder={setLastOrder}
-                            setCart={setCart}
-                            refreshProducts={refreshProducts}
-                        />
-                    )}
                 </>
             );
         };
@@ -1986,7 +2013,7 @@
                                     </span>
                                 </div>
                                 <button
-                                    onClick={handleSubmit}
+                                    type="submit"
                                     disabled={loading}
                                     className="btn btn--primary"
                                     style={{ width: '100%', padding: '0.75rem' }}
