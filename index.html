@@ -197,10 +197,20 @@
             transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
         }
         
+        /* 结账表单特定样式 */
         .form-control:focus {
-            border-color: var(--color-primary);
+            border-color: var(--color-primary) !important;
             outline: none;
-            box-shadow: 0 0 0 3px var(--color-focus-ring);
+            box-shadow: 0 0 0 3px var(--color-focus-ring) !important;
+        }
+        
+        /* 单选按钮和复选框样式 */
+        input[type="radio"]:checked {
+            accent-color: var(--color-primary);
+        }
+        
+        input[type="checkbox"]:checked {
+            accent-color: var(--color-primary);
         }
         
         .form-label {
