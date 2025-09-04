@@ -41,21 +41,21 @@
     
     <!-- ===== 增强CSS样式 - 融合设计系统 ===== -->
     <style>
-        /* 设计系统变量 */
+        /* 设计系统变量 - 修复正确配色方案 */
         :root {
-            --color-background: #fcfcf9;
-            --color-surface: #fffffd;
-            --color-text: #13343b;
-            --color-text-secondary: #626c71;
-            --color-primary: #21808d;
-            --color-primary-hover: #1d7480;
-            --color-primary-active: #1a6873;
-            --color-secondary: rgba(94, 82, 64, 0.12);
-            --color-border: rgba(94, 82, 64, 0.2);
-            --color-error: #c0152f;
-            --color-success: #21808d;
-            --color-warning: #a84b2f;
-            --color-focus-ring: rgba(33, 128, 141, 0.4);
+            --color-background: #f8fafc;
+            --color-surface: #ffffff;
+            --color-text: #333333;
+            --color-text-secondary: #6b7280;
+            --color-primary: #dc2626;
+            --color-primary-hover: #b91c1c;
+            --color-primary-active: #991b1b;
+            --color-secondary: rgba(107, 114, 128, 0.12);
+            --color-border: #d1d5db;
+            --color-error: #dc2626;
+            --color-success: #16a34a;
+            --color-warning: #f59e0b;
+            --color-focus-ring: rgba(220, 38, 38, 0.4);
             
             --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
             --font-size-sm: 0.875rem;
@@ -86,12 +86,12 @@
         /* 暗色模式 */
         @media (prefers-color-scheme: dark) {
             :root {
-                --color-background: #1f2121;
-                --color-surface: #262828;
-                --color-text: #f5f5f5;
-                --color-text-secondary: rgba(167, 169, 169, 0.7);
-                --color-primary: #32b8c6;
-                --color-border: rgba(119, 124, 124, 0.3);
+                --color-background: #111827;
+                --color-surface: #1f2937;
+                --color-text: #f9fafb;
+                --color-text-secondary: rgba(156, 163, 175, 0.7);
+                --color-primary: #ef4444;
+                --color-border: rgba(75, 85, 99, 0.3);
             }
         }
         
@@ -1179,18 +1179,21 @@
             const [products, setProducts] = useState([]);
             const [cart, setCart] = useState([]);
             const [loading, setLoading] = useState(true);
-            const [activeCategory, setActiveCategory] = useState('🍽️全部商品');
+            const [activeCategory, setActiveCategory] = useState('全部商品');
             const [isCartOpen, setIsCartOpen] = useState(false);
             const [toast, setToast] = useState(null);
             const [lastOrder, setLastOrder] = useState(null);
             
-            // 分类配置
+            // 分类配置 - 基于产品系列的分类导航
             const categories = [
-                { id: 'all', name: '🍽️全部商品', emoji: '🍽️' },
-                { id: 'presale', name: '📋预售商品', emoji: '📋' },
-                { id: 'instock', name: '📦现货商品', emoji: '📦' },
-                { id: 'seasoning', name: '🧂调料', emoji: '🧂' },
-                { id: 'other', name: '🔖其他', emoji: '🔖' }
+                { id: 'all', name: '全部商品', emoji: '🍽️' },
+                { id: 'hot-meals', name: '热销套餐', emoji: '🔥' },
+                { id: 'noodles', name: '面条类', emoji: '🍜' },
+                { id: 'rice', name: '饭类', emoji: '🍚' },
+                { id: 'soup', name: '汤品', emoji: '🍲' },
+                { id: 'snacks', name: '小食', emoji: '🥟' },
+                { id: 'seasoning', name: '调料', emoji: '🧂' },
+                { id: 'beverages', name: '饮料', emoji: '🥤' }
             ];
             
             const showToast = (message, type = 'success') => {
@@ -1232,14 +1235,34 @@
                 fetchProducts();
             }, [fetchProducts]);
             
-            // 过滤产品
+            // 过滤产品 - 基于产品系列分类
             const filteredProducts = useMemo(() => {
-                if (activeCategory === '🍽️全部商品') return products;
-                if (activeCategory === '📋预售商品') return products.filter(p => p.is_unlimited);
-                if (activeCategory === '📦现货商品') return products.filter(p => !p.is_unlimited);
-                if (activeCategory === '🧂调料') return products.filter(p => p.category === '调料');
-                if (activeCategory === '🔖其他') return products.filter(p => p.category === '其他');
-                return products.filter(p => p.category === activeCategory);
+                if (activeCategory === '全部商品') return products;
+                
+                // 根据产品分类字段进行筛选
+                return products.filter(product => {
+                    if (!product.category) return activeCategory === '全部商品';
+                    
+                    // 根据分类名称匹配
+                    switch (activeCategory) {
+                        case '热销套餐':
+                            return product.category.includes('套餐') || product.category.includes('热销');
+                        case '面条类':
+                            return product.category.includes('面') || product.category.includes('粉');
+                        case '饭类':
+                            return product.category.includes('饭') || product.category.includes('粥');
+                        case '汤品':
+                            return product.category.includes('汤');
+                        case '小食':
+                            return product.category.includes('小食') || product.category.includes('点心') || product.category.includes('零食');
+                        case '调料':
+                            return product.category.includes('调料') || product.category.includes('酱');
+                        case '饮料':
+                            return product.category.includes('饮') || product.category.includes('茶') || product.category.includes('咖啡');
+                        default:
+                            return product.category === activeCategory;
+                    }
+                });
             }, [products, activeCategory]);
             
             // 添加到购物车
@@ -1335,7 +1358,8 @@
                                             onClick={() => setActiveCategory(category.name)}
                                             className={`category-btn ${activeCategory === category.name ? 'active' : ''}`}
                                         >
-                                            {category.name}
+                                            <span className="text-2xl">{category.emoji}</span>
+                                            <span>{category.name}</span>
                                         </button>
                                     ))}
                                 </div>
@@ -1690,16 +1714,40 @@
             );
         };
         
-        // 💳 结账模态框 (简化版本，完整版本将在下一步添加)
+        // 💳 结账模态框 - 包含取货地址和配送表单
         const CheckoutModal = ({ cart, total, onClose, showToast, setLastOrder, setCart, refreshProducts }) => {
             const [formData, setFormData] = useState({
                 name: '',
                 phone: '',
                 delivery: '',
+                address: '',
                 remarks: '',
                 paymentMethod: ''
             });
             const [loading, setLoading] = useState(false);
+            
+            // 取货地址选项
+            const pickupLocations = [
+                { id: 'location1', name: ' 总店 - 吉隆坡武吉加里尔', address: '123 Jalan Bukit Jalil, 57000 Kuala Lumpur' },
+                { id: 'location2', name: '分店 - 蒲种', address: '456 Jalan Puchong, 47100 Puchong, Selangor' },
+                { id: 'location3', name: '分店 - 八打灵再也', address: '789 Jalan PJ, 46200 Petaling Jaya, Selangor' }
+            ];
+            
+            // 支付二维码数据
+            const paymentQRCodes = {
+                'Maybank QR': {
+                    qrCode: 'https://edfnhhthztskuuosuasw.supabase.co/storage/v1/object/public/qr-codes/maybank-qr.jpg',
+                    bankDetails: {
+                        bank: 'Maybank',
+                        accountName: '锋味派美食',
+                        accountNumber: '1234567890',
+                        note: '转账后请截图作为支付凭证'
+                    }
+                },
+                'TNG eWallet': {
+                    qrCode: 'https://edfnhhthztskuuosuasw.supabase.co/storage/v1/object/public/qr-codes/tng-qr.jpg'
+                }
+            };
             
             const handleSubmit = async (e) => {
                 e.preventDefault();
@@ -1713,6 +1761,7 @@
                         name: formData.name,
                         phone: formData.phone,
                         delivery_method: formData.delivery,
+                        delivery_address: formData.address,
                         remarks: formData.remarks,
                         payment_method: formData.paymentMethod,
                         total_amount: total,
@@ -1805,19 +1854,117 @@
                                         <option value="lalamove">Lalamove送货</option>
                                     </select>
                                 </div>
+                                
+                                {/* 显示取货地址选择 */}
+                                {formData.delivery === 'self-pickup' && (
+                                    <div className="form-group">
+                                        <label className="form-label">选择取货地点 *</label>
+                                        <div className="space-y-2">
+                                            {pickupLocations.map(location => (
+                                                <div key={location.id} className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50">
+                                                    <label className="flex items-start gap-3 cursor-pointer">
+                                                        <input
+                                                            type="radio"
+                                                            name="pickupLocation"
+                                                            value={location.id}
+                                                            onChange={(e) => setFormData({...formData, address: location.address})}
+                                                            className="mt-1"
+                                                            required
+                                                        />
+                                                        <div>
+                                                            <div className="font-medium text-gray-900">{location.name}</div>
+                                                            <div className="text-sm text-gray-600">{location.address}</div>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {/* 显示配送地址输入 */}
+                                {formData.delivery === 'lalamove' && (
+                                    <div className="form-group">
+                                        <label className="form-label">配送地址 *</label>
+                                        <textarea
+                                            className="form-control"
+                                            value={formData.address}
+                                            onChange={(e) => setFormData({...formData, address: e.target.value})}
+                                            required
+                                            rows="3"
+                                            placeholder="请输入完整的配送地址（包括门牌号、街道、城市、邮政编码）"
+                                        />
+                                        <div className="text-sm text-gray-500 mt-1">
+                                            💡 配送费用将根据距离计算，我们会在确认订单后联系您
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="form-group">
                                     <label className="form-label">付款方式 *</label>
-                                    <select
-                                        className="form-control"
-                                        value={formData.paymentMethod}
-                                        onChange={(e) => setFormData({...formData, paymentMethod: e.target.value})}
-                                        required
-                                    >
-                                        <option value="">请选择付款方式</option>
-                                        <option value="Maybank QR">Maybank QR</option>
-                                        <option value="TNG eWallet">TNG eWallet</option>
-                                    </select>
+                                    <div className="space-y-3">
+                                        {Object.keys(paymentQRCodes).map(method => (
+                                            <div key={method} className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50">
+                                                <label className="flex items-center gap-3 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="paymentMethod"
+                                                        value={method}
+                                                        onChange={(e) => setFormData({...formData, paymentMethod: e.target.value})}
+                                                        required
+                                                    />
+                                                    <div className="flex-1">
+                                                        <div className="font-medium">{method}</div>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
+                                
+                                {/* 显示支付二维码和银行资料 */}
+                                {formData.paymentMethod && (
+                                    <div className="form-group">
+                                        <div className="border border-gray-200 rounded-lg p-4 bg-blue-50">
+                                            <h3 className="font-medium mb-3 text-center">{formData.paymentMethod} 支付信息</h3>
+                                            
+                                            {/* QR码 */}
+                                            <div className="text-center mb-4">
+                                                <img 
+                                                    src={paymentQRCodes[formData.paymentMethod].qrCode}
+                                                    alt={`${formData.paymentMethod} QR Code`}
+                                                    className="mx-auto border border-gray-300 rounded-lg"
+                                                    style={{ width: '200px', height: '200px', objectFit: 'contain' }}
+                                                    onError={(e) => {
+                                                        e.target.style.display = 'none';
+                                                        e.target.nextSibling.style.display = 'block';
+                                                    }}
+                                                />
+                                                <div className="hidden text-center text-gray-500 py-8">
+                                                    二维码加载中...
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Maybank 银行转账资料 */}
+                                            {formData.paymentMethod === 'Maybank QR' && paymentQRCodes[formData.paymentMethod].bankDetails && (
+                                                <div className="bg-white rounded-lg p-3 space-y-2">
+                                                    <h4 className="font-medium text-center text-gray-800 mb-2">📱 银行转账资料</h4>
+                                                    <div className="text-sm space-y-1">
+                                                        <div><span className="font-medium">银行:</span> {paymentQRCodes[formData.paymentMethod].bankDetails.bank}</div>
+                                                        <div><span className="font-medium">户名:</span> {paymentQRCodes[formData.paymentMethod].bankDetails.accountName}</div>
+                                                        <div><span className="font-medium">账号:</span> {paymentQRCodes[formData.paymentMethod].bankDetails.accountNumber}</div>
+                                                        <div className="text-orange-600 font-medium mt-2">
+                                                            ⚠️ {paymentQRCodes[formData.paymentMethod].bankDetails.note}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            <div className="text-center text-sm text-gray-600 mt-3">
+                                                扫描二维码或使用银行资料完成付款
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="form-group">
                                     <label className="form-label">备注</label>
                                     <textarea
@@ -3926,49 +4073,819 @@
             );
         };
         
-        // 📈 数据分析组件 (简化版)
+        // 📈 数据分析组件
         const Analytics = () => {
+            const [analyticsData, setAnalyticsData] = useState({
+                salesByMonth: [],
+                topProducts: [],
+                ordersByStatus: [],
+                revenueByCategory: []
+            });
+            const [loading, setLoading] = useState(true);
+            const [chartType, setChartType] = useState('sales');
+            
+            useEffect(() => {
+                const fetchAnalyticsData = async () => {
+                    try {
+                        const [ordersResult, productsResult] = await Promise.all([
+                            supabase.from('orders').select('*').order('created_at', { ascending: false }),
+                            supabase.from('products').select('*')
+                        ]);
+                        
+                        const orders = ordersResult.data || [];
+                        const products = productsResult.data || [];
+                        
+                        // 计算每月销售额
+                        const salesByMonth = {};
+                        orders.forEach(order => {
+                            if (order.created_at) {
+                                const month = order.created_at.substring(0, 7); // YYYY-MM
+                                salesByMonth[month] = (salesByMonth[month] || 0) + Number(order.total_amount || 0);
+                            }
+                        });
+                        
+                        // 计算热销产品
+                        const productSales = {};
+                        orders.forEach(order => {
+                            (order.order_items || []).forEach(item => {
+                                if (item.product) {
+                                    productSales[item.product] = (productSales[item.product] || 0) + (item.quantity || 0);
+                                }
+                            });
+                        });
+                        
+                        // 订单状态分布
+                        const statusCounts = {};
+                        orders.forEach(order => {
+                            const status = order.status || 'unknown';
+                            statusCounts[status] = (statusCounts[status] || 0) + 1;
+                        });
+                        
+                        // 分类收入分析
+                        const categoryRevenue = {};
+                        orders.forEach(order => {
+                            (order.order_items || []).forEach(item => {
+                                const product = products.find(p => p.name === item.product);
+                                const category = product ? (product.category || '其他') : '其他';
+                                const revenue = (item.quantity || 0) * Number(item.price || 0);
+                                categoryRevenue[category] = (categoryRevenue[category] || 0) + revenue;
+                            });
+                        });
+                        
+                        setAnalyticsData({
+                            salesByMonth: Object.entries(salesByMonth).map(([month, sales]) => ({ month, sales })),
+                            topProducts: Object.entries(productSales).sort((a, b) => b[1] - a[1]).slice(0, 10),
+                            ordersByStatus: Object.entries(statusCounts).map(([status, count]) => ({ status, count })),
+                            revenueByCategory: Object.entries(categoryRevenue).map(([category, revenue]) => ({ category, revenue }))
+                        });
+                    } catch (error) {
+                        console.error('获取分析数据失败:', error);
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+                
+                fetchAnalyticsData();
+            }, []);
+            
+            if (loading) {
+                return <LoadingSpinner text="加载分析数据..." />;
+            }
+            
             return (
                 <div className="space-y-6">
                     <div className="page-header">
-                        <h2 className="page-title">📈 数据分析</h2>
-                        <p className="page-subtitle">销售报表和业务洞察</p>
+                        <div>
+                            <h2 className="page-title">📈 数据分析</h2>
+                            <p className="page-subtitle">销售报表和业务洞察</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <select
+                                value={chartType}
+                                onChange={(e) => setChartType(e.target.value)}
+                                className="form-control"
+                            >
+                                <option value="sales">月度销售</option>
+                                <option value="products">热销产品</option>
+                                <option value="status">订单状态</option>
+                                <option value="category">分类收入</option>
+                            </select>
+                        </div>
                     </div>
-                    <div className="text-center p-8 text-gray-500">
-                        <i className="fas fa-hammer text-4xl mb-4"></i>
-                        <p>数据分析功能正在构建中...</p>
+                    
+                    {/* 销售趋势图 */}
+                    {chartType === 'sales' && (
+                        <div className="card">
+                            <div className="card__body">
+                                <h3 className="text-lg font-semibold mb-4">📊 月度销售趋势</h3>
+                                <div className="space-y-3">
+                                    {analyticsData.salesByMonth.map((item, index) => (
+                                        <div key={index} className="flex items-center gap-4">
+                                            <div className="w-20 text-sm font-medium">{item.month}</div>
+                                            <div className="flex-1 bg-gray-200 rounded-full h-6 relative">
+                                                <div
+                                                    className="bg-primary h-full rounded-full flex items-center justify-end pr-2"
+                                                    style={{
+                                                        width: `${Math.max(10, (item.sales / Math.max(...analyticsData.salesByMonth.map(s => s.sales))) * 100)}%`
+                                                    }}
+                                                >
+                                                    <span className="text-xs text-white font-medium">
+                                                        RM{item.sales.toFixed(0)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* 热销产品 */}
+                    {chartType === 'products' && (
+                        <div className="card">
+                            <div className="card__body">
+                                <h3 className="text-lg font-semibold mb-4">🏆 热销产品排行</h3>
+                                <div className="space-y-3">
+                                    {analyticsData.topProducts.map(([product, quantity], index) => (
+                                        <div key={index} className="flex items-center gap-4">
+                                            <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                                {index + 1}
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="font-medium">{product}</div>
+                                                <div className="text-sm text-gray-600">销量: {quantity} 件</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* 订单状态分布 */}
+                    {chartType === 'status' && (
+                        <div className="card">
+                            <div className="card__body">
+                                <h3 className="text-lg font-semibold mb-4">📋 订单状态分布</h3>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {analyticsData.ordersByStatus.map((item, index) => (
+                                        <div key={index} className="text-center">
+                                            <div className="text-2xl font-bold text-primary">{item.count}</div>
+                                            <div className="text-sm text-gray-600 capitalize">{item.status}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* 分类收入分析 */}
+                    {chartType === 'category' && (
+                        <div className="card">
+                            <div className="card__body">
+                                <h3 className="text-lg font-semibold mb-4">💰 分类收入分析</h3>
+                                <div className="space-y-3">
+                                    {analyticsData.revenueByCategory.map((item, index) => (
+                                        <div key={index} className="flex items-center gap-4">
+                                            <div className="w-16 text-sm font-medium">{item.category}</div>
+                                            <div className="flex-1 bg-gray-200 rounded-full h-6 relative">
+                                                <div
+                                                    className="bg-success h-full rounded-full flex items-center justify-end pr-2"
+                                                    style={{
+                                                        width: `${Math.max(10, (item.revenue / Math.max(...analyticsData.revenueByCategory.map(c => c.revenue))) * 100)}%`
+                                                    }}
+                                                >
+                                                    <span className="text-xs text-white font-medium">
+                                                        RM{item.revenue.toFixed(0)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* 数据概要 */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="card">
+                            <div className="card__body text-center">
+                                <div className="text-2xl font-bold text-primary">
+                                    {analyticsData.salesByMonth.reduce((sum, item) => sum + item.sales, 0).toFixed(2)}
+                                </div>
+                                <div className="text-sm text-gray-600">总销售额 (RM)</div>
+                            </div>
+                        </div>
+                        <div className="card">
+                            <div className="card__body text-center">
+                                <div className="text-2xl font-bold text-success">
+                                    {analyticsData.ordersByStatus.reduce((sum, item) => sum + item.count, 0)}
+                                </div>
+                                <div className="text-sm text-gray-600">总订单数</div>
+                            </div>
+                        </div>
+                        <div className="card">
+                            <div className="card__body text-center">
+                                <div className="text-2xl font-bold text-warning">
+                                    {analyticsData.topProducts.reduce((sum, [, quantity]) => sum + quantity, 0)}
+                                </div>
+                                <div className="text-sm text-gray-600">总销售件数</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             );
         };
         
-        // 📱 扫码功能组件 (简化版)
+        // 📱 扫码功能组件
         const Scanner = () => {
+            const [isScanning, setIsScanning] = useState(false);
+            const [scannedResults, setScannedResults] = useState([]);
+            const [scanMode, setScanMode] = useState('qr'); // 'qr' or 'barcode'
+            const scannerRef = useRef(null);
+            
+            useEffect(() => {
+                let html5QrcodeScanner = null;
+                
+                if (isScanning && scannerRef.current) {
+                    try {
+                        html5QrcodeScanner = new Html5QrcodeScanner(
+                            "qr-reader", 
+                            { 
+                                fps: 10, 
+                                qrbox: { width: 250, height: 250 },
+                                rememberLastUsedCamera: true,
+                                supportedScanTypes: scanMode === 'qr' 
+                                    ? [Html5QrcodeScanType.SCAN_TYPE_CAMERA] 
+                                    : [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
+                            },
+                            false
+                        );
+                        
+                        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+                    } catch (error) {
+                        console.error('扫码器初始化失败:', error);
+                    }
+                }
+                
+                return () => {
+                    if (html5QrcodeScanner) {
+                        html5QrcodeScanner.clear().catch(error => {
+                            console.error('清理扫码器失败:', error);
+                        });
+                    }
+                };
+            }, [isScanning, scanMode]);
+            
+            const onScanSuccess = (decodedText, decodedResult) => {
+                const timestamp = new Date().toLocaleString('zh-CN');
+                const newResult = {
+                    id: Date.now(),
+                    text: decodedText,
+                    format: decodedResult.result?.format,
+                    timestamp: timestamp,
+                    type: scanMode
+                };
+                
+                setScannedResults(prev => [newResult, ...prev]);
+                
+                // 显示扫码成功通知
+                showToast(`扫码成功: ${decodedText}`, 'success');
+            };
+            
+            const onScanFailure = (error) => {
+                // 扫码失败，通常是因为没有找到码，可以忽略
+            };
+            
+            const startScanning = () => {
+                setIsScanning(true);
+            };
+            
+            const stopScanning = () => {
+                setIsScanning(false);
+            };
+            
+            const clearResults = () => {
+                setScannedResults([]);
+            };
+            
+            const copyToClipboard = async (text) => {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    showToast('已复制到剪贴板', 'success');
+                } catch (error) {
+                    showToast('复制失败', 'error');
+                }
+            };
+            
+            const showToast = (message, type) => {
+                // 简单的Toast通知实现
+                const toast = document.createElement('div');
+                toast.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded-md text-white ${
+                    type === 'success' ? 'bg-green-500' : 'bg-red-500'
+                }`;
+                toast.textContent = message;
+                document.body.appendChild(toast);
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 3000);
+            };
+            
             return (
                 <div className="space-y-6">
                     <div className="page-header">
-                        <h2 className="page-title">📱 扫码功能</h2>
-                        <p className="page-subtitle">二维码和条形码扫描</p>
+                        <div>
+                            <h2 className="page-title">📱 扫码功能</h2>
+                            <p className="page-subtitle">二维码和条形码扫描</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <select
+                                value={scanMode}
+                                onChange={(e) => setScanMode(e.target.value)}
+                                className="form-control"
+                                disabled={isScanning}
+                            >
+                                <option value="qr">二维码</option>
+                                <option value="barcode">条形码</option>
+                            </select>
+                        </div>
                     </div>
-                    <div className="text-center p-8 text-gray-500">
-                        <i className="fas fa-hammer text-4xl mb-4"></i>
-                        <p>扫码功能正在构建中...</p>
+                    
+                    {/* 扫码控制面板 */}
+                    <div className="card">
+                        <div className="card__body">
+                            <div className="flex flex-col md:flex-row gap-4 items-center">
+                                <div className="flex-1">
+                                    {isScanning ? (
+                                        <div className="flex items-center gap-3 text-green-600">
+                                            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                                            <span className="font-medium">扫码器运行中...</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-3 text-gray-600">
+                                            <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+                                            <span>扫码器已停止</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex gap-2">
+                                    {!isScanning ? (
+                                        <button
+                                            onClick={startScanning}
+                                            className="btn btn--primary"
+                                        >
+                                            <i className="fas fa-play mr-2"></i>
+                                            开始扫码
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={stopScanning}
+                                            className="btn btn--danger"
+                                        >
+                                            <i className="fas fa-stop mr-2"></i>
+                                            停止扫码
+                                        </button>
+                                    )}
+                                    {scannedResults.length > 0 && (
+                                        <button
+                                            onClick={clearResults}
+                                            className="btn btn--secondary"
+                                        >
+                                            <i className="fas fa-trash mr-2"></i>
+                                            清空记录
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* 扫码区域 */}
+                    {isScanning && (
+                        <div className="card">
+                            <div className="card__body">
+                                <div className="text-center mb-4">
+                                    <h3 className="text-lg font-semibold">
+                                        {scanMode === 'qr' ? '📱 请对准二维码' : '🏷️ 请对准条形码'}
+                                    </h3>
+                                    <p className="text-gray-600 text-sm mt-1">
+                                        请将摄像头对准要扫描的码，保持稳定
+                                    </p>
+                                </div>
+                                <div id="qr-reader" style={{ width: '100%' }}></div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* 扫码结果 */}
+                    {scannedResults.length > 0 && (
+                        <div className="card">
+                            <div className="card__body">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg font-semibold">📋 扫码记录</h3>
+                                    <span className="text-sm text-gray-600">
+                                        共 {scannedResults.length} 条记录
+                                    </span>
+                                </div>
+                                
+                                <div className="space-y-3 max-h-96 overflow-y-auto">
+                                    {scannedResults.map((result) => (
+                                        <div key={result.id} className="border border-gray-200 rounded-lg p-4">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className="text-lg">
+                                                            {result.type === 'qr' ? '📱' : '🏷️'}
+                                                        </span>
+                                                        <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                                                            {result.type === 'qr' ? '二维码' : '条形码'}
+                                                        </span>
+                                                        <span className="text-xs text-gray-500">
+                                                            {result.timestamp}
+                                                        </span>
+                                                    </div>
+                                                    <div className="bg-gray-50 rounded p-3 font-mono text-sm break-all">
+                                                        {result.text}
+                                                    </div>
+                                                    {result.format && (
+                                                        <div className="mt-2 text-xs text-gray-600">
+                                                            格式: {result.format}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    onClick={() => copyToClipboard(result.text)}
+                                                    className="btn btn--secondary btn-sm"
+                                                    title="复制内容"
+                                                >
+                                                    <i className="fas fa-copy"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* 使用说明 */}
+                    <div className="card">
+                        <div className="card__body">
+                            <h3 className="text-lg font-semibold mb-3">📖 使用说明</h3>
+                            <div className="space-y-2 text-sm text-gray-600">
+                                <div className="flex items-start gap-2">
+                                    <i className="fas fa-check-circle text-green-500 mt-0.5"></i>
+                                    <span>点击"开始扫码"按钮激活摄像头</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <i className="fas fa-check-circle text-green-500 mt-0.5"></i>
+                                    <span>将设备摄像头对准二维码或条形码</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <i className="fas fa-check-circle text-green-500 mt-0.5"></i>
+                                    <span>保持稳定直到自动识别成功</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <i className="fas fa-check-circle text-green-500 mt-0.5"></i>
+                                    <span>扫码结果会自动保存并可复制到剪贴板</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             );
         };
         
-        // 📸 拍照功能组件 (简化版)
+        // 📸 拍照功能组件
         const Camera = () => {
+            const [isCamera, setIsCamera] = useState(false);
+            const [capturedPhotos, setCapturedPhotos] = useState([]);
+            const [uploading, setUploading] = useState(false);
+            const videoRef = useRef(null);
+            const canvasRef = useRef(null);
+            const streamRef = useRef(null);
+            
+            useEffect(() => {
+                return () => {
+                    // 清理摄像头资源
+                    if (streamRef.current) {
+                        streamRef.current.getTracks().forEach(track => track.stop());
+                    }
+                };
+            }, []);
+            
+            const startCamera = async () => {
+                try {
+                    const constraints = {
+                        video: {
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 },
+                            facingMode: 'environment' // 后置摄像头
+                        },
+                        audio: false
+                    };
+                    
+                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    streamRef.current = stream;
+                    
+                    if (videoRef.current) {
+                        videoRef.current.srcObject = stream;
+                        videoRef.current.play();
+                    }
+                    
+                    setIsCamera(true);
+                    showToast('摄像头启动成功', 'success');
+                } catch (error) {
+                    console.error('启动摄像头失败:', error);
+                    showToast('无法访问摄像头，请检查权限设置', 'error');
+                }
+            };
+            
+            const stopCamera = () => {
+                if (streamRef.current) {
+                    streamRef.current.getTracks().forEach(track => track.stop());
+                    streamRef.current = null;
+                }
+                
+                if (videoRef.current) {
+                    videoRef.current.srcObject = null;
+                }
+                
+                setIsCamera(false);
+                showToast('摄像头已停止', 'success');
+            };
+            
+            const capturePhoto = () => {
+                if (!videoRef.current || !canvasRef.current) return;
+                
+                const video = videoRef.current;
+                const canvas = canvasRef.current;
+                const context = canvas.getContext('2d');
+                
+                // 设置画布尺寸
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                
+                // 绘制视频帧到画布
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // 转换为Base64图片
+                const imageData = canvas.toDataURL('image/jpeg', 0.8);
+                const timestamp = new Date().toLocaleString('zh-CN');
+                
+                const newPhoto = {
+                    id: Date.now(),
+                    data: imageData,
+                    timestamp: timestamp,
+                    size: Math.round(imageData.length * 0.75), // 估算文件大小
+                    uploaded: false
+                };
+                
+                setCapturedPhotos(prev => [newPhoto, ...prev]);
+                showToast('照片拍摄成功', 'success');
+            };
+            
+            const deletePhoto = (photoId) => {
+                setCapturedPhotos(prev => prev.filter(photo => photo.id !== photoId));
+                showToast('照片已删除', 'success');
+            };
+            
+            const uploadPhoto = async (photo) => {
+                if (!photo || photo.uploaded) return;
+                
+                try {
+                    setUploading(true);
+                    
+                    // 将Base64转换为Blob
+                    const response = await fetch(photo.data);
+                    const blob = await response.blob();
+                    
+                    const fileName = `product_${Date.now()}.jpg`;
+                    
+                    // 上传到Supabase Storage
+                    const { data, error } = await supabase.storage
+                        .from('product-photos')
+                        .upload(fileName, blob, {
+                            contentType: 'image/jpeg',
+                            upsert: true
+                        });
+                    
+                    if (error) throw error;
+                    
+                    // 更新照片状态
+                    setCapturedPhotos(prev => prev.map(p => 
+                        p.id === photo.id ? { ...p, uploaded: true, uploadPath: data.path } : p
+                    ));
+                    
+                    showToast('照片上传成功', 'success');
+                } catch (error) {
+                    console.error('照片上传失败:', error);
+                    showToast('上传失败: ' + error.message, 'error');
+                } finally {
+                    setUploading(false);
+                }
+            };
+            
+            const downloadPhoto = (photo) => {
+                const link = document.createElement('a');
+                link.href = photo.data;
+                link.download = `photo_${photo.timestamp.replace(/[:/\s]/g, '_')}.jpg`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+            
+            const showToast = (message, type) => {
+                const toast = document.createElement('div');
+                toast.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded-md text-white ${
+                    type === 'success' ? 'bg-green-500' : 'bg-red-500'
+                }`;
+                toast.textContent = message;
+                document.body.appendChild(toast);
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 3000);
+            };
+            
             return (
                 <div className="space-y-6">
                     <div className="page-header">
-                        <h2 className="page-title">📸 拍照功能</h2>
-                        <p className="page-subtitle">商品拍照和图片管理</p>
+                        <div>
+                            <h2 className="page-title">📸 拍照功能</h2>
+                            <p className="page-subtitle">商品拍照和图片管理</p>
+                        </div>
                     </div>
-                    <div className="text-center p-8 text-gray-500">
-                        <i className="fas fa-hammer text-4xl mb-4"></i>
-                        <p>拍照功能正在构建中...</p>
+                    
+                    {/* 相机控制面板 */}
+                    <div className="card">
+                        <div className="card__body">
+                            <div className="flex flex-col md:flex-row gap-4 items-center">
+                                <div className="flex-1">
+                                    {isCamera ? (
+                                        <div className="flex items-center gap-3 text-green-600">
+                                            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                                            <span className="font-medium">摄像头运行中...</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-3 text-gray-600">
+                                            <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+                                            <span>摄像头已停止</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex gap-2">
+                                    {!isCamera ? (
+                                        <button
+                                            onClick={startCamera}
+                                            className="btn btn--primary"
+                                        >
+                                            <i className="fas fa-video mr-2"></i>
+                                            启动摄像头
+                                        </button>
+                                    ) : (
+                                        <>
+                                            <button
+                                                onClick={capturePhoto}
+                                                className="btn btn--success"
+                                            >
+                                                <i className="fas fa-camera mr-2"></i>
+                                                拍照
+                                            </button>
+                                            <button
+                                                onClick={stopCamera}
+                                                className="btn btn--danger"
+                                            >
+                                                <i className="fas fa-stop mr-2"></i>
+                                                停止
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* 摄像头视频预览 */}
+                    {isCamera && (
+                        <div className="card">
+                            <div className="card__body">
+                                <div className="text-center mb-4">
+                                    <h3 className="text-lg font-semibold">📷 摄像头预览</h3>
+                                    <p className="text-gray-600 text-sm mt-1">
+                                        调整好角度后点击"拍照"按钮
+                                    </p>
+                                </div>
+                                <div className="relative bg-black rounded-lg overflow-hidden" style={{ maxWidth: '100%', aspectRatio: '16/9' }}>
+                                    <video
+                                        ref={videoRef}
+                                        autoPlay
+                                        playsInline
+                                        muted
+                                        className="w-full h-full object-contain"
+                                    />
+                                </div>
+                                <canvas ref={canvasRef} className="hidden" />
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* 拍摄的照片gallery */}
+                    {capturedPhotos.length > 0 && (
+                        <div className="card">
+                            <div className="card__body">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg font-semibold">📸 拍摄记录</h3>
+                                    <span className="text-sm text-gray-600">
+                                        共 {capturedPhotos.length} 张照片
+                                    </span>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {capturedPhotos.map((photo) => (
+                                        <div key={photo.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                                            <div className="aspect-video bg-gray-100">
+                                                <img
+                                                    src={photo.data}
+                                                    alt={`拍摄于 ${photo.timestamp}`}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
+                                            <div className="p-3">
+                                                <div className="text-xs text-gray-600 mb-2">
+                                                    {photo.timestamp}
+                                                </div>
+                                                <div className="text-xs text-gray-500 mb-3">
+                                                    大小: {(photo.size / 1024).toFixed(1)} KB
+                                                    {photo.uploaded && (
+                                                        <span className="ml-2 text-green-600">
+                                                            <i className="fas fa-check-circle mr-1"></i>
+                                                            已上传
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => downloadPhoto(photo)}
+                                                        className="btn btn--secondary btn-sm flex-1"
+                                                        title="下载照片"
+                                                    >
+                                                        <i className="fas fa-download"></i>
+                                                    </button>
+                                                    {!photo.uploaded && (
+                                                        <button
+                                                            onClick={() => uploadPhoto(photo)}
+                                                            disabled={uploading}
+                                                            className="btn btn--primary btn-sm flex-1"
+                                                            title="上传到云端"
+                                                        >
+                                                            <i className="fas fa-cloud-upload-alt"></i>
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => deletePhoto(photo.id)}
+                                                        className="btn btn--danger btn-sm"
+                                                        title="删除照片"
+                                                    >
+                                                        <i className="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* 使用说明 */}
+                    <div className="card">
+                        <div className="card__body">
+                            <h3 className="text-lg font-semibold mb-3">📖 使用说明</h3>
+                            <div className="space-y-2 text-sm text-gray-600">
+                                <div className="flex items-start gap-2">
+                                    <i className="fas fa-check-circle text-green-500 mt-0.5"></i>
+                                    <span>点击"启动摄像头"允许浏览器访问摄像头</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <i className="fas fa-check-circle text-green-500 mt-0.5"></i>
+                                    <span>调整设备角度确保商品清晰可见</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <i className="fas fa-check-circle text-green-500 mt-0.5"></i>
+                                    <span>点击"拍照"按钮捕获当前画面</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <i className="fas fa-check-circle text-green-500 mt-0.5"></i>
+                                    <span>照片可下载到本地或上传到云端存储</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <i className="fas fa-info-circle text-blue-500 mt-0.5"></i>
+                                    <span>建议使用后置摄像头获得更好的拍摄效果</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             );
