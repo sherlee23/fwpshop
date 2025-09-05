@@ -1212,16 +1212,17 @@
             const [toast, setToast] = useState(null);
             const [lastOrder, setLastOrder] = useState(null);
             
-            // 分类配置 - 产品系列分类导航
+            // 分类配置 - 产品系列分类导航（基于实际产品系列）
             const categories = [
                 { id: 'all', name: '全部商品', emoji: '🍽️' },
-                { id: 'hot-meals', name: '热销套餐', emoji: '🔥' },
-                { id: 'noodles', name: '面条类', emoji: '🍜' },
-                { id: 'rice', name: '饭类', emoji: '🍚' },
-                { id: 'soup', name: '汤品', emoji: '🍲' },
-                { id: 'snacks', name: '小食', emoji: '🥟' },
-                { id: 'seasoning', name: '调料', emoji: '🧂' },
-                { id: 'beverages', name: '饮料', emoji: '🥤' }
+                { id: 'sausage', name: '烤肠系列', emoji: '🌭' },
+                { id: 'siumai', name: '烧卖系列', emoji: '🥟' },
+                { id: 'dumpling', name: '水饺系列', emoji: '🥟' },
+                { id: 'fishball', name: '鱼丸系列', emoji: '🍡' },
+                { id: 'noodles', name: '面食系列', emoji: '🍜' },
+                { id: 'rice', name: '饭类系列', emoji: '🍚' },
+                { id: 'soup', name: '汤品系列', emoji: '🍲' },
+                { id: 'beverages', name: '饮料系列', emoji: '🥤' }
             ];
             console.log('🏷️ 初始化分类导航:', categories.length, '个分类');
             
@@ -1273,22 +1274,24 @@
                 return products.filter(product => {
                     if (!product.category) return activeCategory === '全部商品';
                     
-                    // 根据分类名称匹配
+                    // 根据产品系列进行分类过滤
                     switch (activeCategory) {
-                        case '热销套餐':
-                            return product.category.includes('套餐') || product.category.includes('热销');
-                        case '面条类':
-                            return product.category.includes('面') || product.category.includes('粉');
-                        case '饭类':
-                            return product.category.includes('饭') || product.category.includes('粥');
-                        case '汤品':
-                            return product.category.includes('汤');
-                        case '小食':
-                            return product.category.includes('小食') || product.category.includes('点心') || product.category.includes('零食');
-                        case '调料':
-                            return product.category.includes('调料') || product.category.includes('酱');
-                        case '饮料':
-                            return product.category.includes('饮') || product.category.includes('茶') || product.category.includes('咖啡');
+                        case '烤肠系列':
+                            return product.category.includes('烤肠') || product.category.includes('肠');
+                        case '烧卖系列':
+                            return product.category.includes('烧卖') || product.category.includes('烧麦');
+                        case '水饺系列':
+                            return product.category.includes('水饺') || product.category.includes('饺子');
+                        case '鱼丸系列':
+                            return product.category.includes('鱼丸') || product.category.includes('丸子');
+                        case '面食系列':
+                            return product.category.includes('面') || product.category.includes('粉') || product.category.includes('河粉');
+                        case '饭类系列':
+                            return product.category.includes('饭') || product.category.includes('粥') || product.category.includes('粥类');
+                        case '汤品系列':
+                            return product.category.includes('汤') || product.category.includes('汤品');
+                        case '饮料系列':
+                            return product.category.includes('饮') || product.category.includes('茶') || product.category.includes('咖啡') || product.category.includes('果汁');
                         default:
                             return product.category === activeCategory;
                     }
@@ -1773,16 +1776,16 @@
             // 支付二维码数据
             const paymentQRCodes = {
                 'Maybank QR': {
-                    qrCode: 'https://edfnhhthztskuuosuasw.supabase.co/storage/v1/object/public/qr-codes/maybank-qr.jpg',
+                    qrCode: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2ZmZmZmZiIgc3Ryb2tlPSIjY2NjY2NjIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIxMDAiIHk9IjEwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzMzMzMzMyI+TWF5YmFuayBRUjwvdGV4dD4KICA8cmVjdCB4PSI1MCIgeT0iNTAiIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSJub25lIiBzdHJva2U9IiMzMzMzMzMiIHN0cm9rZS13aWR0aD0iMiIvPgo8L3N2Zz4K',
                     bankDetails: {
                         bank: 'Maybank',
-                        accountName: '锋味派美食',
-                        accountNumber: '1234567890',
-                        note: '转账后请截图作为支付凭证'
+                        accountName: '锋味派美食有限公司',
+                        accountNumber: '5628 4521 8976 3210',
+                        note: '转账后请保留收据并截图作为支付凭证上传'
                     }
                 },
                 'TNG eWallet': {
-                    qrCode: 'https://edfnhhthztskuuosuasw.supabase.co/storage/v1/object/public/qr-codes/tng-qr.jpg'
+                    qrCode: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2ZmZmZmZiIgc3Ryb2tlPSIjY2NjY2NjIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIxMDAiIHk9IjEwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzMzMzMzMyI+VE5HIGVXYWxsZXQ8L3RleHQ+CiAgPHJlY3QgeD0iNTAiIHk9IjUwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzMzMzMzIiBzdHJva2Utd2lkdGg9IjIiLz4KPC9zdmc+Cg=='
                 }
             };
             
@@ -2141,6 +2144,12 @@
         const AdminLayout = ({ user, onLogout }) => {
             const [activeView, setActiveView] = useState('dashboard');
             const [sidebarOpen, setSidebarOpen] = useState(false);
+            const [toast, setToast] = useState(null);
+            
+            const showToast = (message, type = 'success') => {
+                setToast({ message, type });
+                setTimeout(() => setToast(null), 3000);
+            };
             
             // 管理后台菜单项
             const adminMenuItems = [
@@ -2243,9 +2252,12 @@
                         
                         {/* 内容区 */}
                         <main className="admin-content">
-                            {React.createElement(currentComponent, { setActiveView })}
+                            {React.createElement(currentComponent, { setActiveView, showToast })}
                         </main>
                     </div>
+                    
+                    {/* Toast 通知 */}
+                    {toast && <Toast {...toast} onDismiss={() => setToast(null)} />}
                 </div>
             );
         };
@@ -4596,7 +4608,7 @@
         };
         
         // 📸 拍照功能组件
-        const Camera = () => {
+        const Camera = ({ showToast = (msg, type) => console.log(msg) }) => {
             const [isCamera, setIsCamera] = useState(false);
             const [capturedPhotos, setCapturedPhotos] = useState([]);
             const [uploading, setUploading] = useState(false);
