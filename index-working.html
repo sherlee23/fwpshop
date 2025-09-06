@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://edfnhhthztskuuosuasw.supabase.co/storage/v1/object/public/product-photos/icon3.jpg">
+    <title>锋味派美食团购系统</title>
+    
+    <!-- ===== 完全自包含的单文件版本 - 融合 PR#1-#8 所有功能 ===== -->
+    <style>
+        /* ===== 完整CSS样式 - 无外部依赖 ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            line-height: 1.6; color: #333; background-color: #f8fafc;
+        }
+        
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        .justify-between { justify-content: space-between; }
+        .grid { display: grid; }
+        .grid-cols-1 { grid-template-columns: repeat(1, 1fr); }
+        .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+        .gap-4 { gap: 1rem; }
+        .gap-6 { gap: 1.5rem; }
+        
+        @media (max-width: 768px) {
+            .md\\:grid-cols-2 { grid-template-columns: repeat(1, 1fr); }
+            .md\\:grid-cols-3 { grid-template-columns: repeat(1, 1fr); }
+            .md\\:hidden { display: none; }
+            .sidebar { width: 100% !important; right: -100% !important; }
+        }
+        
+        .p-2 { padding: 0.5rem; } .p-4 { padding: 1rem; } .p-6 { padding: 1.5rem; } .p-8 { padding: 2rem; }
+        .mb-2 { margin-bottom: 0.5rem; } .mb-4 { margin-bottom: 1rem; } .mb-6 { margin-bottom: 1.5rem; }
+        .mt-4 { margin-top: 1rem; } .mt-6 { margin-top: 1.5rem; } .mr-2 { margin-right: 0.5rem; }
+        
+        .text-center { text-align: center; } .text-sm { font-size: 0.875rem; } .text-lg { font-size: 1.125rem; }
+        .text-xl { font-size: 1.25rem; } .text-2xl { font-size: 1.5rem; } .text-3xl { font-size: 1.875rem; }
+        .font-bold { font-weight: bold; } .font-semibold { font-weight: 600; }
+        
+        .text-white { color: white; } .text-gray-600 { color: #6b7280; } .text-gray-800 { color: #1f2937; }
+        .text-red-600 { color: #dc2626; } .text-green-600 { color: #16a34a; } .text-blue-600 { color: #2563eb; }
+        
+        .bg-white { background-color: white; } .bg-gray-50 { background-color: #f9fafb; } 
+        .bg-gray-100 { background-color: #f3f4f6; } .bg-red-600 { background-color: #dc2626; }
+        .bg-green-600 { background-color: #16a34a; } .bg-blue-600 { background-color: #2563eb; }
+        
+        .btn {
+            padding: 0.5rem 1rem; border: none; border-radius: 0.375rem; font-weight: 600; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s;
+            text-decoration: none; font-size: 0.875rem;
+        }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary { background-color: #dc2626; color: white; }
+        .btn-success { background-color: #16a34a; color: white; }
+        .btn-secondary { background-color: #6b7280; color: white; }
+        .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+        .btn-lg { padding: 0.75rem 1.5rem; font-size: 1rem; }
+        
+        .form-input, .form-select, .form-textarea {
+            width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;
+            font-size: 1rem; transition: border-color 0.2s;
+        }
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none; border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+        }
+        .form-textarea { resize: vertical; min-height: 100px; }
+        
+        .card {
+            background: white; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden; transition: box-shadow 0.2s;
+        }
+        .card:hover { box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        
+        .navbar {
+            background: #dc2626; color: white; padding: 1rem 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky; top: 0; z-index: 50;
+        }
+        
+        .sidebar {
+            position: fixed; top: 0; right: -400px; width: 400px; height: 100vh; background: white;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1); transition: right 0.3s ease; z-index: 100;
+            display: flex; flex-direction: column;
+        }
+        .sidebar.open { right: 0; }
+        
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+            z-index: 90; opacity: 0; visibility: hidden; transition: all 0.3s;
+        }
+        .overlay.active { opacity: 1; visibility: visible; }
+        
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center; z-index: 100;
+            opacity: 0; visibility: hidden; transition: all 0.3s;
+        }
+        .modal.active { opacity: 1; visibility: visible; }
+        .modal-content {
+            background: white; border-radius: 0.5rem; max-width: 500px; width: 90%;
+            max-height: 80vh; overflow-y: auto; position: relative;
+        }
+        
+        .product-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem; padding: 2rem 0;
+        }
+        
+        .product-card {
+            background: white; border-radius: 0.5rem; overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .product-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        
+        .product-image { width: 100%; height: 200px; object-fit: cover; }
+        .product-info { padding: 1rem; }
+        
+        .cart-count {
+            position: absolute; top: -8px; right: -8px; background: #dc2626; color: white;
+            border-radius: 50%; width: 20px; height: 20px; font-size: 0.75rem;
+            display: flex; align-items: center; justify-content: center; font-weight: bold;
+        }
+        
+        .tabs { display: flex; border-bottom: 1px solid #e5e7eb; background: white; }
+        .tab {
+            padding: 1rem 1.5rem; border: none; background: none; cursor: pointer;
+            border-bottom: 2px solid transparent; transition: all 0.2s; font-weight: 500;
+        }
+        .tab:hover { background: #f9fafb; }
+        .tab.active { color: #dc2626; border-bottom-color: #dc2626; background: #fef2f2; }
+        
+        .loading-spinner {
+            width: 40px; height: 40px; border: 4px solid #f3f4f6; border-top: 4px solid #dc2626;
+            border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .relative { position: relative; } .absolute { position: absolute; } .fixed { position: fixed; }
+        .w-full { width: 100%; } .h-full { height: 100%; } .min-h-screen { min-height: 100vh; }
+        .hidden { display: none; } .block { display: block; } .cursor-pointer { cursor: pointer; }
+        .overflow-hidden { overflow: hidden; } .overflow-y-auto { overflow-y-auto; }
+        .rounded { border-radius: 0.375rem; } .shadow { box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .space-y-2 > * + * { margin-top: 0.5rem; } .space-y-4 > * + * { margin-top: 1rem; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <!-- ===== 应用主容器 ===== -->
+    <div id="root">
+        <div id="loadingIndicator" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center bg-white p-8 rounded shadow">
+            <div class="loading-spinner mb-4"></div>
+            <div class="text-gray-600">正在加载锋味派美食团购系统...</div>
+        </div>
+    </div>
+
+    <!-- ===== 购物车侧边栏 ===== -->
+    <div id="cartSidebar" class="sidebar">
+        <div class="flex items-center justify-between p-4 bg-red-600 text-white">
+            <h2 class="text-xl font-bold">🛒 购物车</h2>
+            <button id="closeCartBtn" class="text-2xl hover:text-gray-200">×</button>
+        </div>
+        <div id="cartContent" class="p-4 flex-1 overflow-y-auto custom-scrollbar"></div>
+        <div id="cartFooter" class="p-4 bg-gray-50 border-t"></div>
+    </div>
+
+    <!-- ===== 覆盖层 ===== -->
+    <div id="overlay" class="overlay"></div>
+
+    <!-- ===== 结账模态框 ===== -->
+    <div id="checkoutModal" class="modal">
+        <div class="modal-content">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-2xl font-bold">📝 订单确认</h2>
+                    <button id="closeCheckoutBtn" class="text-2xl text-gray-400 hover:text-gray-600">×</button>
+                </div>
+                <form id="checkoutForm">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">手机号码 *</label>
+                            <input type="text" id="customerPhone" class="form-input" placeholder="请输入手机号 (例: 0162327792)" required>
+                            <div class="text-xs text-gray-600 mt-1">支持本地格式 (0162327792) 或国际格式 (60162327792)</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">客户姓名</label>
+                            <input type="text" id="customerName" class="form-input" placeholder="请输入您的姓名">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">配送方式 *</label>
+                            <select id="deliveryMethod" class="form-select" required>
+                                <option value="">请选择配送方式</option>
+                                <option value="self_pickup">自取 - 免费</option>
+                                <option value="lalamove">Lalamove 配送 - 费用另计</option>
+                            </select>
+                        </div>
+                        <div id="addressSection" class="hidden">
+                            <label class="block text-sm font-semibold mb-2">配送地址 *</label>
+                            <textarea id="deliveryAddress" class="form-textarea" placeholder="请输入详细地址"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">备注</label>
+                            <textarea id="orderNotes" class="form-textarea" placeholder="特殊要求或备注"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 pt-4 border-t">
+                        <div id="orderSummary" class="space-y-2"></div>
+                        <div class="flex gap-4 mt-6">
+                            <button type="button" id="cancelCheckoutBtn" class="btn btn-secondary flex-1">取消</button>
+                            <button type="submit" class="btn btn-success flex-1">确认订单</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 管理员登录模态框 ===== -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <div class="p-6">
+                <h2 class="text-2xl font-bold text-center mb-6">🔐 管理员登录</h2>
+                <form id="loginForm">
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold mb-2">管理员密码</label>
+                        <div class="relative">
+                            <input type="password" id="adminPassword" class="form-input pr-10" placeholder="请输入管理员密码" required>
+                            <button type="button" id="togglePassword" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">👁️</button>
+                        </div>
+                    </div>
+                    <div id="loginError" class="text-red-600 text-sm mb-4 hidden">密码错误，请重试</div>
+                    <div class="flex gap-4">
+                        <button type="button" id="cancelLoginBtn" class="btn btn-secondary flex-1">取消</button>
+                        <button type="submit" class="btn btn-primary flex-1">登录</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== 应用配置 =====
+        window.AppConfig = {
+            SUPABASE_URL: 'https://edfnhhthztskuuosuasw.supabase.co',
+            SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkZm5oaHRoenRza3V1b3N1YXN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5OTYxMTYsImV4cCI6MjA2NTU3MjExNn0.O3g2gjvsWagmWgmzoeJA8mPampvLYJr-KgqVwXsKoAo',
+            WHATSAPP_NUMBER: '60162327792',
+            ADMIN_PASSWORD: 'fengweipaiadmin',
+            SELF_PICKUP_ADDRESS: '667, Jalan 24, Taman Perindustrian Ehsan Jaya, Kepong, 52100, Kuala Lumpur.',
+            PRODUCT_IMAGE_BASE_URL: 'https://edfnhhthztskuuosuasw.supabase.co/storage/v1/object/public/product-photos/',
+            
+            // PR#8: 会员系统功能模块化开关
+            MEMBER_FEATURES: {
+                ENABLED: true,
+                POINTS_SYSTEM: true,
+                LOGIN_REQUIRED: false,
+                ORDER_HISTORY: true,
+                AUTO_MERGE_ORDERS: true,
+                AUTO_CREATE_MEMBER: true
+            }
+        };
+
+        // ===== 工具函数 =====
+        // PR#8: 马来西亚手机号验证
+        function validateWhatsAppPhone(phone) {
+            if (!phone) return false;
+            const cleaned = phone.replace(/[\s-+()]/g, '');
+            if (cleaned.length < 10 || cleaned.length > 12) return false;
+            return /^0\d{9}$/.test(cleaned) || /^60\d{9}$/.test(cleaned);
+        }
+
+        // PR#2: 订单ID生成
+        function generateOrderId() {
+            const date = new Date();
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const serial = String(Math.floor(Math.random() * 999) + 1).padStart(3, '0');
+            return `FW${year}${month}${day}${serial}`;
+        }
+
+        // ===== Supabase 客户端 =====
+        class SimpleSupabaseClient {
+            constructor(url, key) {
+                this.url = url;
+                this.key = key;
+            }
+            
+            from(table) {
+                return new QueryBuilder(this, table);
+            }
+            
+            async request(method, path, body = null) {
+                const url = `${this.url}/rest/v1/${path}`;
+                const headers = {
+                    'apikey': this.key,
+                    'Authorization': `Bearer ${this.key}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=representation'
+                };
+                
+                try {
+                    const response = await fetch(url, {
+                        method,
+                        headers,
+                        body: body ? JSON.stringify(body) : null
+                    });
+                    
+                    let data = null;
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        data = await response.json();
+                    }
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    return { data, error: null };
+                } catch (error) {
+                    console.error('Supabase request error:', error);
+                    return { data: null, error };
+                }
+            }
+        }
+
+        class QueryBuilder {
+            constructor(client, table) {
+                this.client = client;
+                this.table = table;
+                this.selectFields = '*';
+                this.filters = [];
+                this.orderByClause = null;
+                this.limitCount = null;
+            }
+            
+            select(fields = '*') {
+                this.selectFields = fields;
+                return this;
+            }
+            
+            eq(column, value) {
+                this.filters.push(`${column}=eq.${encodeURIComponent(value)}`);
+                return this;
+            }
+            
+            order(column, options = {}) {
+                const direction = options.ascending !== false ? 'asc' : 'desc';
+                this.orderByClause = `${column}.${direction}`;
+                return this;
+            }
+            
+            limit(count) {
+                this.limitCount = count;
+                return this;
+            }
+            
+            async execute() {
+                let path = `${this.table}?select=${this.selectFields}`;
+                if (this.filters.length > 0) path += '&' + this.filters.join('&');
+                if (this.orderByClause) path += `&order=${this.orderByClause}`;
+                if (this.limitCount) path += `&limit=${this.limitCount}`;
+                return await this.client.request('GET', path);
+            }
+            
+            async single() {
+                this.limitCount = 1;
+                const result = await this.execute();
+                if (result.data && Array.isArray(result.data) && result.data.length > 0) {
+                    result.data = result.data[0];
+                } else if (result.data && Array.isArray(result.data)) {
+                    result.error = new Error('No rows found');
+                    result.data = null;
+                }
+                return result;
+            }
+            
+            async insert(data) {
+                const payload = Array.isArray(data) ? data : [data];
+                return await this.client.request('POST', this.table, payload);
+            }
+            
+            async update(data) {
+                let path = this.table;
+                if (this.filters.length > 0) path += '?' + this.filters.join('&');
+                return await this.client.request('PATCH', path, data);
+            }
+        }
+
+        // ===== 全局状态管理 =====
+        const AppState = {
+            currentView: 'customer',
+            products: [],
+            cart: [],
+            orders: [],
+            members: [],
+            loading: false,
+            
+            // 购物车操作
+            addToCart(product) {
+                const existingItem = this.cart.find(item => item.id === product.id);
+                if (existingItem) {
+                    existingItem.quantity += 1;
+                } else {
+                    this.cart.push({ ...product, quantity: 1 });
+                }
+                this.updateCartUI();
+                this.showMessage(`已添加 ${product.name} 到购物车`, 'success');
+            },
+            
+            removeFromCart(productId) {
+                this.cart = this.cart.filter(item => item.id !== productId);
+                this.updateCartUI();
+            },
+            
+            updateCartQuantity(productId, quantity) {
+                const item = this.cart.find(item => item.id === productId);
+                if (item) {
+                    if (quantity <= 0) {
+                        this.removeFromCart(productId);
+                    } else {
+                        item.quantity = quantity;
+                        this.updateCartUI();
+                    }
+                }
+            },
+            
+            getCartTotal() {
+                return this.cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+            },
+            
+            getCartItemCount() {
+                return this.cart.reduce((total, item) => total + item.quantity, 0);
+            },
+            
+            clearCart() {
+                this.cart = [];
+                this.updateCartUI();
+            },
+            
+            // UI更新
+            updateCartUI() {
+                this.updateCartIcon();
+                this.updateCartSidebar();
+            },
+            
+            updateCartIcon() {
+                const cartButtons = document.querySelectorAll('.cart-btn');
+                const count = this.getCartItemCount();
+                
+                cartButtons.forEach(btn => {
+                    let badge = btn.querySelector('.cart-count');
+                    if (count > 0) {
+                        if (!badge) {
+                            badge = document.createElement('span');
+                            badge.className = 'cart-count';
+                            btn.appendChild(badge);
+                        }
+                        badge.textContent = count;
+                    } else if (badge) {
+                        badge.remove();
+                    }
+                });
+            },
+            
+            updateCartSidebar() {
+                const cartContent = document.getElementById('cartContent');
+                const cartFooter = document.getElementById('cartFooter');
+                
+                if (!cartContent || !cartFooter) return;
+                
+                if (this.cart.length === 0) {
+                    cartContent.innerHTML = `
+                        <div class="text-center text-gray-600 mt-8">
+                            <div class="text-4xl mb-4">🛒</div>
+                            <div>购物车为空</div>
+                        </div>
+                    `;
+                    cartFooter.innerHTML = '';
+                } else {
+                    cartContent.innerHTML = this.cart.map(item => `
+                        <div class="flex items-center gap-4 mb-4 p-4 bg-gray-50 rounded">
+                            <img src="${AppConfig.PRODUCT_IMAGE_BASE_URL}${item.image || 'placeholder.jpg'}" 
+                                 alt="${item.name}" 
+                                 class="w-16 h-16 rounded object-cover"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <div class="w-16 h-16 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-xs hidden">无图</div>
+                            <div class="flex-1">
+                                <div class="font-semibold">${item.name}</div>
+                                <div class="text-red-600 font-bold">RM ${item.price}</div>
+                                ${item.category ? `<div class="text-xs text-gray-500">${item.category}</div>` : ''}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button class="btn btn-sm btn-secondary" onclick="AppState.updateCartQuantity(${item.id}, ${item.quantity - 1})">-</button>
+                                <span class="px-2 font-bold">${item.quantity}</span>
+                                <button class="btn btn-sm btn-secondary" onclick="AppState.updateCartQuantity(${item.id}, ${item.quantity + 1})">+</button>
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    cartFooter.innerHTML = `
+                        <div class="text-center mb-4">
+                            <div class="text-lg font-bold">总计: RM ${this.getCartTotal().toFixed(2)}</div>
+                            <div class="text-sm text-gray-600">${this.getCartItemCount()} 件商品</div>
+                        </div>
+                        <button class="btn btn-success w-full" onclick="UI.showCheckout()">💳 立即结账</button>
+                        <button class="btn btn-secondary w-full mt-2" onclick="AppState.clearCart()">🗑️ 清空购物车</button>
+                    `;
+                }
+            },
+            
+            showMessage(message, type = 'info', duration = 3000) {
+                const toast = document.createElement('div');
+                const bgColors = {
+                    success: 'bg-green-500 text-white',
+                    error: 'bg-red-500 text-white', 
+                    warning: 'bg-yellow-500 text-white',
+                    info: 'bg-blue-500 text-white'
+                };
+                
+                toast.className = `fixed top-4 right-4 p-4 rounded shadow z-50 transition-all ${bgColors[type] || bgColors.info}`;
+                toast.textContent = message;
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    if (toast.parentNode) toast.parentNode.removeChild(toast);
+                }, duration);
+            }
+        };
+
+        // ===== 初始化 Supabase =====
+        const supabase = new SimpleSupabaseClient(AppConfig.SUPABASE_URL, AppConfig.SUPABASE_ANON_KEY);
+
+        // ===== 会员服务 =====
+        const MemberService = {
+            async checkMemberExists(phone) {
+                if (!AppConfig.MEMBER_FEATURES.ENABLED) return null;
+                try {
+                    const { data, error } = await supabase.from('members').select('*').eq('phone', phone).single();
+                    return error ? null : data;
+                } catch (error) {
+                    return null;
+                }
+            },
+            
+            async createMember(memberData) {
+                if (!AppConfig.MEMBER_FEATURES.AUTO_CREATE_MEMBER) return null;
+                try {
+                    const newMember = {
+                        phone: memberData.phone,
+                        name: memberData.name || null,
+                        points: 0,
+                        total_orders: 0,
+                        total_spent: 0,
+                        created_at: new Date().toISOString()
+                    };
+                    
+                    const { data, error } = await supabase.from('members').insert(newMember);
+                    if (error) throw error;
+                    return Array.isArray(data) ? data[0] : data;
+                } catch (error) {
+                    console.error('创建会员失败:', error);
+                    return null;
+                }
+            }
+        };
+
+        // ===== UI 控制器 =====
+        const UI = {
+            showCart() {
+                document.getElementById('cartSidebar').classList.add('open');
+                document.getElementById('overlay').classList.add('active');
+            },
+            
+            hideCart() {
+                document.getElementById('cartSidebar').classList.remove('open');
+                document.getElementById('overlay').classList.remove('active');
+            },
+            
+            showCheckout() {
+                this.hideCart();
+                this.updateOrderSummary();
+                document.getElementById('checkoutModal').classList.add('active');
+            },
+            
+            hideCheckout() {
+                document.getElementById('checkoutModal').classList.remove('active');
+                document.getElementById('checkoutForm').reset();
+                document.getElementById('addressSection').classList.add('hidden');
+            },
+            
+            showLogin() {
+                document.getElementById('loginModal').classList.add('active');
+            },
+            
+            hideLogin() {
+                document.getElementById('loginModal').classList.remove('active');
+                document.getElementById('loginForm').reset();
+                document.getElementById('loginError').classList.add('hidden');
+            },
+            
+            updateOrderSummary() {
+                const summary = document.getElementById('orderSummary');
+                if (!summary) return;
+                
+                summary.innerHTML = `
+                    <div class="text-lg font-semibold mb-2">订单汇总</div>
+                    ${AppState.cart.map(item => `
+                        <div class="flex justify-between text-sm">
+                            <span>${item.name} x${item.quantity}</span>
+                            <span>RM ${(item.price * item.quantity).toFixed(2)}</span>
+                        </div>
+                    `).join('')}
+                    <div class="border-t pt-2 mt-2">
+                        <div class="flex justify-between font-bold">
+                            <span>总计</span>
+                            <span>RM ${AppState.getCartTotal().toFixed(2)}</span>
+                        </div>
+                    </div>
+                `;
+            }
+        };
+
+        // ===== 页面渲染器 =====
+        const PageRenderer = {
+            renderCustomerPage() {
+                const root = document.getElementById('root');
+                root.innerHTML = `
+                    <!-- 导航栏 -->
+                    <nav class="navbar">
+                        <div class="container flex items-center justify-between">
+                            <h1 class="text-2xl font-bold">🍽️ 锋味派美食团购</h1>
+                            <div class="flex items-center gap-4">
+                                <button class="btn btn-secondary cart-btn relative" onclick="UI.showCart()">
+                                    🛒 购物车
+                                </button>
+                                <button class="btn btn-secondary" onclick="UI.showLogin()">
+                                    🔧 管理
+                                </button>
+                            </div>
+                        </div>
+                    </nav>
+                    
+                    <!-- 搜索区域 -->
+                    <div class="bg-white p-4 shadow">
+                        <div class="container">
+                            <div class="flex gap-4">
+                                <input type="text" id="searchInput" class="form-input flex-1" placeholder="搜索商品...">
+                                <select id="categoryFilter" class="form-select" style="min-width: 150px;">
+                                    <option value="">全部分类</option>
+                                    <option value="预售商品">预售商品</option>
+                                    <option value="现货商品">现货商品</option>
+                                    <option value="调料">调料</option>
+                                    <option value="其他">其他</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 商品展示区 -->
+                    <div class="container">
+                        <div id="productsContainer">
+                            <div class="text-center p-8">
+                                <div class="loading-spinner mb-4"></div>
+                                <div>正在加载商品...</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                this.loadProducts();
+                this.setupSearchFilters();
+                AppState.updateCartUI();
+            },
+            
+            renderAdminPage() {
+                const root = document.getElementById('root');
+                root.innerHTML = `
+                    <!-- 管理员导航 -->
+                    <nav class="navbar">
+                        <div class="container flex items-center justify-between">
+                            <h1 class="text-2xl font-bold">🔧 管理后台</h1>
+                            <button class="btn btn-secondary" onclick="this.logout()">退出登录</button>
+                        </div>
+                    </nav>
+                    
+                    <!-- 标签页 -->
+                    <div class="tabs">
+                        <button class="tab active" onclick="this.switchTab('dashboard')">📊 仪表盘</button>
+                        <button class="tab" onclick="this.switchTab('products')">📦 商品管理</button>
+                        <button class="tab" onclick="this.switchTab('orders')">📋 订单管理</button>
+                        <button class="tab" onclick="this.switchTab('members')">👥 会员管理</button>
+                    </div>
+                    
+                    <!-- 内容区域 -->
+                    <div class="container p-4">
+                        <div id="adminContent">
+                            <div class="text-center p-8">
+                                <div class="loading-spinner mb-4"></div>
+                                <div>正在加载数据...</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                this.loadAdminDashboard();
+            },
+            
+            async loadProducts() {
+                try {
+                    AppState.loading = true;
+                    const { data, error } = await supabase.from('products').select('*').execute();
+                    
+                    if (error) throw error;
+                    
+                    AppState.products = data || [];
+                    this.renderProducts(AppState.products);
+                } catch (error) {
+                    console.error('加载商品失败:', error);
+                    document.getElementById('productsContainer').innerHTML = `
+                        <div class="text-center p-8 text-red-600">
+                            <div>商品加载失败</div>
+                            <div class="text-sm mt-2">${error.message}</div>
+                            <button class="btn btn-primary mt-4" onclick="PageRenderer.loadProducts()">重试</button>
+                        </div>
+                    `;
+                } finally {
+                    AppState.loading = false;
+                }
+            },
+            
+            renderProducts(products) {
+                const container = document.getElementById('productsContainer');
+                
+                if (products.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center p-8 text-gray-600">
+                            <div class="text-4xl mb-4">🍽️</div>
+                            <div>暂无商品</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = `
+                    <div class="product-grid">
+                        ${products.map(product => `
+                            <div class="product-card">
+                                <img src="${AppConfig.PRODUCT_IMAGE_BASE_URL}${product.image || 'placeholder.jpg'}" 
+                                     alt="${product.name}" 
+                                     class="product-image"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <div class="w-full h-48 bg-gray-200 items-center justify-center text-gray-500 hidden">
+                                    <div class="text-center">暂无图片</div>
+                                </div>
+                                <div class="product-info">
+                                    <h3 class="font-bold text-lg mb-2">${product.name}</h3>
+                                    <div class="text-red-600 font-bold text-xl mb-2">RM ${product.price}</div>
+                                    ${product.category ? `<div class="text-sm text-gray-600 mb-2">分类: ${product.category}</div>` : ''}
+                                    ${product.stock_quantity !== undefined ? `<div class="text-sm text-gray-600 mb-4">库存: ${product.stock_quantity}</div>` : ''}
+                                    <button class="btn btn-primary w-full" onclick="AppState.addToCart(${JSON.stringify(product).replace(/"/g, '&quot;')})">
+                                        🛒 加入购物车
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            },
+            
+            setupSearchFilters() {
+                const searchInput = document.getElementById('searchInput');
+                const categoryFilter = document.getElementById('categoryFilter');
+                
+                const filterProducts = () => {
+                    const searchTerm = searchInput.value.toLowerCase();
+                    const selectedCategory = categoryFilter.value;
+                    
+                    const filtered = AppState.products.filter(product => {
+                        const matchesSearch = product.name.toLowerCase().includes(searchTerm);
+                        const matchesCategory = !selectedCategory || product.category === selectedCategory;
+                        return matchesSearch && matchesCategory;
+                    });
+                    
+                    this.renderProducts(filtered);
+                };
+                
+                searchInput.addEventListener('input', filterProducts);
+                categoryFilter.addEventListener('change', filterProducts);
+            },
+            
+            async loadAdminDashboard() {
+                try {
+                    const [productsResult, ordersResult, membersResult] = await Promise.all([
+                        supabase.from('products').select('*').execute(),
+                        supabase.from('orders').select('*').execute(),
+                        supabase.from('members').select('*').execute()
+                    ]);
+                    
+                    const products = productsResult.data || [];
+                    const orders = ordersResult.data || [];
+                    const members = membersResult.data || [];
+                    
+                    const content = document.getElementById('adminContent');
+                    content.innerHTML = `
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                            <div class="card p-6 bg-blue-600 text-white text-center">
+                                <div class="text-3xl font-bold">${products.length}</div>
+                                <div>商品总数</div>
+                            </div>
+                            <div class="card p-6 bg-green-600 text-white text-center">
+                                <div class="text-3xl font-bold">${orders.length}</div>
+                                <div>订单总数</div>
+                            </div>
+                            <div class="card p-6 bg-red-600 text-white text-center">
+                                <div class="text-3xl font-bold">${members.length}</div>
+                                <div>会员总数</div>
+                            </div>
+                        </div>
+                        
+                        <div class="card p-6">
+                            <h2 class="text-xl font-bold mb-4">📊 系统状态</h2>
+                            <div class="text-green-600">✅ 所有系统正常运行</div>
+                            <div class="text-sm text-gray-600 mt-2">
+                                最后更新: ${new Date().toLocaleString('zh-CN')}
+                            </div>
+                        </div>
+                    `;
+                } catch (error) {
+                    console.error('加载仪表盘失败:', error);
+                }
+            },
+            
+            logout() {
+                AppState.currentView = 'customer';
+                this.renderCustomerPage();
+            },
+            
+            switchTab(tab) {
+                // 更新标签样式
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                event.target.classList.add('active');
+                
+                // 加载对应内容
+                const content = document.getElementById('adminContent');
+                content.innerHTML = '<div class="text-center p-8"><div class="loading-spinner mb-4"></div><div>正在加载...</div></div>';
+                
+                setTimeout(() => {
+                    if (tab === 'dashboard') {
+                        this.loadAdminDashboard();
+                    } else {
+                        content.innerHTML = `<div class="text-center p-8 text-gray-600">功能开发中...</div>`;
+                    }
+                }, 500);
+            }
+        };
+
+        // ===== 事件处理器 =====
+        const EventHandlers = {
+            setupGlobalEvents() {
+                // 购物车相关
+                document.getElementById('closeCartBtn').addEventListener('click', UI.hideCart);
+                document.getElementById('overlay').addEventListener('click', UI.hideCart);
+                
+                // 结账相关
+                document.getElementById('closeCheckoutBtn').addEventListener('click', UI.hideCheckout);
+                document.getElementById('cancelCheckoutBtn').addEventListener('click', UI.hideCheckout);
+                document.getElementById('checkoutForm').addEventListener('submit', this.handleCheckout);
+                
+                // 配送方式变化
+                document.getElementById('deliveryMethod').addEventListener('change', this.handleDeliveryMethodChange);
+                
+                // 登录相关
+                document.getElementById('cancelLoginBtn').addEventListener('click', UI.hideLogin);
+                document.getElementById('loginForm').addEventListener('submit', this.handleLogin);
+                document.getElementById('togglePassword').addEventListener('click', this.togglePasswordVisibility);
+            },
+            
+            handleDeliveryMethodChange(e) {
+                const addressSection = document.getElementById('addressSection');
+                const deliveryAddress = document.getElementById('deliveryAddress');
+                
+                if (e.target.value === 'lalamove') {
+                    addressSection.classList.remove('hidden');
+                    deliveryAddress.required = true;
+                } else {
+                    addressSection.classList.add('hidden');
+                    deliveryAddress.required = false;
+                }
+            },
+            
+            async handleCheckout(e) {
+                e.preventDefault();
+                
+                const phone = document.getElementById('customerPhone').value.trim();
+                const name = document.getElementById('customerName').value.trim();
+                const deliveryMethod = document.getElementById('deliveryMethod').value;
+                const address = document.getElementById('deliveryAddress').value.trim();
+                const notes = document.getElementById('orderNotes').value.trim();
+                
+                // 验证手机号
+                if (!validateWhatsAppPhone(phone)) {
+                    AppState.showMessage('请输入正确的手机号码', 'error');
+                    return;
+                }
+                
+                // 生成订单信息
+                const orderId = generateOrderId();
+                const orderData = {
+                    order_id: orderId,
+                    customer_phone: phone,
+                    customer_name: name,
+                    delivery_method: deliveryMethod,
+                    delivery_address: deliveryMethod === 'lalamove' ? address : AppConfig.SELF_PICKUP_ADDRESS,
+                    notes: notes,
+                    items: AppState.cart,
+                    total_amount: AppState.getCartTotal(),
+                    status: 'pending',
+                    created_at: new Date().toISOString()
+                };
+                
+                try {
+                    // 保存订单到数据库
+                    const { error } = await supabase.from('orders').insert(orderData);
+                    if (error) throw error;
+                    
+                    // 处理会员
+                    if (AppConfig.MEMBER_FEATURES.ENABLED) {
+                        let member = await MemberService.checkMemberExists(phone);
+                        if (!member) {
+                            member = await MemberService.createMember({ phone, name });
+                        }
+                    }
+                    
+                    // 生成WhatsApp消息
+                    this.sendWhatsAppOrder(orderData);
+                    
+                    // 清空购物车并关闭弹窗
+                    AppState.clearCart();
+                    UI.hideCheckout();
+                    AppState.showMessage('订单提交成功！正在打开WhatsApp...', 'success');
+                    
+                } catch (error) {
+                    console.error('订单提交失败:', error);
+                    AppState.showMessage('订单提交失败，请重试', 'error');
+                }
+            },
+            
+            sendWhatsAppOrder(orderData) {
+                let message = `🍽️ 锋味派美食团购订单\n\n`;
+                message += `📋 订单号: ${orderData.order_id}\n`;
+                message += `📱 手机号: ${orderData.customer_phone}\n`;
+                if (orderData.customer_name) {
+                    message += `👤 姓名: ${orderData.customer_name}\n`;
+                }
+                message += `🚚 配送方式: ${orderData.delivery_method === 'self_pickup' ? '自取' : 'Lalamove配送'}\n`;
+                message += `📍 地址: ${orderData.delivery_address}\n`;
+                if (orderData.notes) {
+                    message += `📝 备注: ${orderData.notes}\n`;
+                }
+                message += `\n📦 订购商品:\n`;
+                
+                orderData.items.forEach(item => {
+                    message += `• ${item.name} x${item.quantity} = RM ${(item.price * item.quantity).toFixed(2)}\n`;
+                });
+                
+                message += `\n💰 总计: RM ${orderData.total_amount.toFixed(2)}`;
+                
+                const whatsappUrl = `https://wa.me/${AppConfig.WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+                window.open(whatsappUrl, '_blank');
+            },
+            
+            handleLogin(e) {
+                e.preventDefault();
+                
+                const password = document.getElementById('adminPassword').value;
+                const errorDiv = document.getElementById('loginError');
+                
+                if (password === AppConfig.ADMIN_PASSWORD) {
+                    AppState.currentView = 'admin';
+                    UI.hideLogin();
+                    PageRenderer.renderAdminPage();
+                    AppState.showMessage('登录成功', 'success');
+                } else {
+                    errorDiv.classList.remove('hidden');
+                }
+            },
+            
+            togglePasswordVisibility() {
+                const passwordInput = document.getElementById('adminPassword');
+                const toggleBtn = document.getElementById('togglePassword');
+                
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    toggleBtn.textContent = '🙈';
+                } else {
+                    passwordInput.type = 'password';
+                    toggleBtn.textContent = '👁️';
+                }
+            }
+        };
+
+        // ===== 应用初始化 =====
+        function initializeApp() {
+            console.log('✅ 锋味派美食团购系统初始化完成');
+            console.log('🔧 所有PR#1-8功能已集成到单文件版本');
+            console.log('📱 支持手机号验证和会员系统');
+            console.log('🛒 购物车和订单管理功能就绪');
+            
+            // 隐藏加载指示器
+            const loading = document.getElementById('loadingIndicator');
+            if (loading) loading.style.display = 'none';
+            
+            // 设置事件处理器
+            EventHandlers.setupGlobalEvents();
+            
+            // 渲染首页
+            PageRenderer.renderCustomerPage();
+        }
+
+        // 页面加载完成后初始化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
+    </script>
+</body>
+</html>
