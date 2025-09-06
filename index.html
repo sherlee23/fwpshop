@@ -97,11 +97,7 @@ const SUPABASE_URL = 'https://edfnhhthztskuuosuasw.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkZm5oaHRoenRza3V1b3N1YXN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5OTYxMTYsImV4cCI6MjA2NTU3MjExNn0.O3g2gjvsWagmWgmzoeJA8mPampvLYJr-KgqVwXsKoAo';
 const WHATSAPP_NUMBER = '60162327792';
 const ADMIN_PASSWORD = 'fengweipaiadmin';
-const PICKUP_ADDRESSES = [
-  { id: 'main', name: '总店', location: '吉隆坡武吉加里尔', address: '667, Jalan 24, Taman Perindustrian Ehsan Jaya, Kepong, 52100, Kuala Lumpur.' },
-  { id: 'puchong', name: '分店', location: '蒲种', address: 'Lot 123, Jalan Puchong, 47100 Puchong, Selangor.' },
-  { id: 'pj', name: '分店', location: '八打灵再也', address: 'No. 456, Jalan PJ, 46200 Petaling Jaya, Selangor.' }
-];
+const SELF_PICKUP_ADDRESS = `667, Jalan 24, Taman Perindustrian Ehsan Jaya, Kepong, 52100, Kuala Lumpur.`;
 const PRODUCT_IMAGE_BASE_URL = 'https://edfnhhthztskuuosuasw.supabase.co/storage/v1/object/public/product-photos/';
 // 避免与全局 supabase UMD 对象同名遮蔽，显式引用 window.supabase
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -140,8 +136,8 @@ function buildOrderMessage(order){
   try {
     let msg = `🛎️ *锋味派新订单 #${order.order_id}*\n\n`;
     msg += `👤 *客户信息*\n📛 姓名: ${order.name}\n📱 电话: ${order.phone}\n🚚 取货方式: ${order.delivery_method==='self-pickup'?'自取':'Lalamove送货'}\n`;
-    if (order.delivery_method === 'self-pickup' && order.pickup_address) {
-      msg += `📍 自取地址: ${order.pickup_address}\n`;
+    if (order.delivery_method === 'self-pickup') {
+      msg += `📍 自取地址: ${SELF_PICKUP_ADDRESS}\n`;
     }
     msg += `\n🛒 *订单明细*\n`;
     (order.order_items||[]).forEach(it=>{
@@ -597,10 +593,7 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                   if (!formData.delivery) newErrors.delivery = '请选择取货方式';
                   if (!formData.paymentMethod) newErrors.paymentMethod = '请选择付款方式';
                   
-                  // Self-pickup requires address selection
-                  if (formData.delivery === 'self-pickup' && !formData.pickupAddress) {
-                    newErrors.pickupAddress = '请选择取货地址';
-                  }
+                  // Self-pickup address is automatically set, no validation needed
                   
                   // Lalamove delivery requires address in deliveryAddress field
                   if (formData.delivery === 'lalamove' && (!formData.deliveryAddress || formData.deliveryAddress.trim() === '')) {
@@ -643,8 +636,7 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                       paymentProof, 
                       cart, 
                       total,
-                      pickup_address: formData.delivery === 'self-pickup' ? 
-                        PICKUP_ADDRESSES.find(addr => addr.id === formData.pickupAddress)?.address : null
+                      pickup_address: formData.delivery === 'self-pickup' ? SELF_PICKUP_ADDRESS : null
                     };
                     onConfirm(finalData);
                   }
@@ -680,29 +672,14 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                             {errors.delivery && <p className="text-red-500 text-xs mt-1">{errors.delivery}</p>}
                           </div>
 
-                          {/* Self-pickup address selection */}
+                          {/* Self-pickup address display */}
                           {formData.delivery === 'self-pickup' && (
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">选择取货地址 *</label>
-                              <div className="space-y-3">
-                                {PICKUP_ADDRESSES.map(address => (
-                                  <label key={address.id} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                                    <input
-                                      type="radio"
-                                      name="pickupAddress"
-                                      value={address.id}
-                                      checked={formData.pickupAddress === address.id}
-                                      onChange={handleChange}
-                                      className="mt-1"
-                                    />
-                                    <div className="flex-1">
-                                      <div className="font-medium text-gray-800">{address.name} - {address.location}</div>
-                                      <div className="text-sm text-gray-600 mt-1">{address.address}</div>
-                                    </div>
-                                  </label>
-                                ))}
+                              <label className="block text-sm font-medium text-gray-700 mb-1">自取地址</label>
+                              <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
+                                {SELF_PICKUP_ADDRESS}
                               </div>
-                              {errors.pickupAddress && <p className="text-red-500 text-xs mt-1">{errors.pickupAddress}</p>}
+                              <p className="text-gray-500 text-xs mt-1">自取地址为只读，无需填写</p>
                             </div>
                           )}
 
@@ -732,27 +709,16 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                             {errors.paymentMethod && <p className="text-red-500 text-xs mt-1">{errors.paymentMethod}</p>}
                           </div>
 
-                          {/* Payment QR codes and bank details */}
+                          {/* Payment QR codes */}
                           {formData.paymentMethod === 'Maybank QR' && (
-                            <div className="space-y-4">
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Maybank 二维码</label>
-                                <div className="flex justify-center p-4 bg-gray-50 rounded-lg">
-                                  <img 
-                                    src="https://edfnhhthztskuuosuasw.supabase.co/storage/v1/object/public/product-photos/IMG_4042.png" 
-                                    alt="Maybank QR码" 
-                                    className="max-w-xs max-h-64 object-contain"
-                                  />
-                                </div>
-                              </div>
-                              <div className="bg-blue-50 p-4 rounded-lg">
-                                <h4 className="font-medium text-blue-800 mb-2">银行转账资料</h4>
-                                <div className="text-sm text-blue-700 space-y-1">
-                                  <p><strong>户名:</strong> 锋味派美食有限公司</p>
-                                  <p><strong>账号:</strong> 5628 4521 8976 3210</p>
-                                  <p><strong>银行:</strong> Maybank</p>
-                                  <p className="text-xs mt-2 text-blue-600">请确保转账后上传支付凭证</p>
-                                </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">Maybank 二维码</label>
+                              <div className="flex justify-center p-4 bg-gray-50 rounded-lg">
+                                <img 
+                                  src="https://edfnhhthztskuuosuasw.supabase.co/storage/v1/object/public/product-photos/IMG_4042.png" 
+                                  alt="Maybank QR码" 
+                                  className="max-w-xs max-h-64 object-contain"
+                                />
                               </div>
                             </div>
                           )}
@@ -936,8 +902,8 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                             <p>姓名: {orderData.name}</p>
                             <p>电话: {orderData.phone}</p>
                             <p>取货方式: {orderData.delivery === 'self-pickup' ? '自取' : 'Lalamove送货'}</p>
-                            {orderData.delivery === 'self-pickup' && orderData.pickup_address && (
-                              <p>取货地址: {orderData.pickup_address}</p>
+                            {orderData.delivery === 'self-pickup' && (
+                              <p>取货地址: {SELF_PICKUP_ADDRESS}</p>
                             )}
                             {orderData.delivery === 'lalamove' && orderData.deliveryAddress && (
                               <p>配送地址: {orderData.deliveryAddress}</p>
@@ -985,7 +951,7 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                     msg += '📱 电话: ' + order.phone + '\n';
                     msg += '🚚 取货方式: ' + (order.delivery_method === 'self-pickup' ? '自取' : 'Lalamove送货') + '\n';
                     if (order.delivery_method === 'self-pickup') {
-                      msg += '📍 自取地址: ' + (order.pickup_address || '总店') + '\n';
+                      msg += '📍 自取地址: ' + SELF_PICKUP_ADDRESS + '\n';
                       msg += '⏰ 取货时间: 另行通知\n';
                       msg += '📞 联络号码: 0162327792\n';
                     } else if (order.delivery_address) {
