@@ -720,6 +720,31 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                                   className="max-w-xs max-h-64 object-contain"
                                 />
                               </div>
+                              {/* Bank transfer details */}
+                              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                <h4 className="font-semibold text-blue-800 mb-2 flex items-center">
+                                  <i className="fas fa-university mr-2"></i>
+                                  银行转账资料
+                                </h4>
+                                <div className="space-y-2 text-sm">
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">银行:</span>
+                                    <span className="font-medium">Maybank</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">户名:</span>
+                                    <span className="font-medium">Choong Sher Lee</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">账号:</span>
+                                    <span className="font-medium font-mono">114209540438</span>
+                                  </div>
+                                </div>
+                                <p className="text-xs text-blue-600 mt-2">
+                                  <i className="fas fa-info-circle mr-1"></i>
+                                  可选择扫描二维码或直接银行转账
+                                </p>
+                              </div>
                             </div>
                           )}
 
@@ -1575,145 +1600,649 @@ function Toast({message,type='success',onDismiss}){ useEffect(()=>{ const t=setT
                 );
               }
 
-              // Simple Scanner component
-              function Scanner() {
-                const [results, setResults] = useState([]);
-                const [active, setActive] = useState(false);
+              // ========= 扫码 =========
+              function Scanner(){ const [mode,setMode]=useState('camera'); const [active,setActive]=useState(false); const [results,setResults]=useState([]); const ref=useRef(null); const ID='html5-qrcode-box'; useEffect(()=>{ if(mode==='camera'&&active){ if(!window.Html5Qrcode) return; if(!ref.current){ ref.current=new Html5Qrcode(ID); ref.current.start({facingMode:'environment'},{fps:10,qrbox:250},(code)=>{ setResults(r=>[{code,ts:Date.now()},...r.slice(0,49)]); },()=>{}); } } return()=>{}; },[mode,active]); const stop=()=>{ if(ref.current){ ref.current.stop().catch(()=>{}); ref.current.clear(); ref.current=null;} setActive(false); }; useEffect(()=>()=>stop(),[]); useEffect(()=>{ if(mode!=='gun') return; let buf=''; let last=0; const h=e=>{ const now=Date.now(); if(now-last>100) buf=''; last=now; if(e.key==='Enter'){ if(buf.trim()) setResults(r=>[{code:buf.trim(),ts:Date.now()},...r.slice(0,49)]); buf=''; } else if(e.key.length===1) buf+=e.key; }; window.addEventListener('keydown',h); return()=>window.removeEventListener('keydown',h); },[mode]); return <div className="bg-white p-6 rounded-lg shadow"><h2 className="text-lg font-bold mb-4">扫码功能</h2><div className="flex gap-3 mb-4"><button className={`px-3 py-1.5 rounded ${mode==='camera'?'bg-red-600 text-white':'bg-gray-200'}`} onClick={()=>{setMode('camera');}}>摄像头</button><button className={`px-3 py-1.5 rounded ${mode==='gun'?'bg-red-600 text-white':'bg-gray-200'}`} onClick={()=>{setMode('gun'); stop();}}>扫码枪</button></div>{mode==='camera' && <div className="space-y-3"><div id={ID} style={{width:'300px'}}></div><div>{active? <button onClick={stop} className="px-3 py-1.5 bg-gray-200 rounded">停止</button>:<button onClick={()=>setActive(true)} className="px-3 py-1.5 bg-green-600 text-white rounded">启动</button>}</div></div>}{mode==='gun' && <p className="text-xs text-gray-500 mb-2">焦点在页面即可直接扫，或输入后回车。</p>}<h3 className="font-semibold mt-6 mb-2">最近结果</h3><ul className="text-xs max-h-56 overflow-auto space-y-1 border p-2 rounded bg-gray-50">{results.length===0&&<li className="text-gray-400">暂无</li>}{results.map(r=> <li key={r.ts}>{new Date(r.ts).toLocaleTimeString()} - {r.code}</li>)}</ul></div>; }
 
-                return (
-                  <div className="bg-white p-6 rounded-lg shadow">
-                    <h2 className="text-lg font-bold mb-4">扫码功能</h2>
-                    <div className="space-y-4">
-                      <button 
-                        onClick={() => setActive(!active)} 
-                        className={`px-4 py-2 rounded ${active ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}`}
-                      >
-                        {active ? '停止扫码' : '启动扫码'}
-                      </button>
-                      <div className="border p-4 rounded bg-gray-50">
-                        <h3 className="font-medium mb-2">扫码结果</h3>
-                        <div className="text-sm text-gray-600">
-                          {results.length === 0 ? '暂无扫码记录' : results.slice(0, 5).map((result, index) => (
-                            <div key={index} className="py-1">{result}</div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
+              // ========= 拍照 =========
+              function Camera(){ const videoRef=useRef(null); const canvasRef=useRef(null); const [streaming,setStreaming]=useState(false); const [photo,setPhoto]=useState(null); const [uploading,setUploading]=useState(false); const start=async()=>{ try{ const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); videoRef.current.srcObject=s; setStreaming(true);}catch(e){ alert('无法访问摄像头:'+e.message);} }; const stop=()=>{ if(videoRef.current?.srcObject){ videoRef.current.srcObject.getTracks().forEach(t=>t.stop()); } setStreaming(false); }; useEffect(()=>()=>stop(),[]); const snap=()=>{ const v=videoRef.current; const c=canvasRef.current; if(!v||!c) return; c.width=v.videoWidth; c.height=v.videoHeight; c.getContext('2d').drawImage(v,0,0); const data=c.toDataURL('image/jpeg',0.9); setPhoto(data); }; const upload=async()=>{ if(!photo) return; setUploading(true); try{ const blob=await (await fetch(photo)).blob(); const filename='admin-captures/'+Date.now()+'.jpg'; const {error}=await supabaseClient.storage.from('product-photos').upload(filename,blob); if(error) alert('上传失败:'+error.message); else alert('上传成功:'+filename);}catch(e){ alert('异常:'+e.message);} setUploading(false); }; return <div className="bg-white p-6 rounded-lg shadow"><h2 className="text-lg font-bold mb-4">拍照功能</h2><div className="flex flex-col md:flex-row gap-6"><div><video ref={videoRef} autoPlay playsInline className="w-72 rounded-lg bg-black"/><div className="mt-3 space-x-2"><button onClick={streaming?stop:start} className="px-3 py-1.5 rounded bg-gray-200">{streaming?'停止':'启动'}</button><button onClick={snap} disabled={!streaming} className="px-3 py-1.5 rounded bg-red-600 text-white disabled:bg-gray-300">拍照</button></div></div><div className="flex flex-col items-start gap-3"><canvas ref={canvasRef} className="hidden"/><div className="w-60 h-44 flex items-center justify-center bg-gray-100 rounded overflow-hidden">{photo? <img src={photo} alt="preview" className="w-full"/>:<span className="text-gray-400 text-sm">暂无照片</span>}</div><div className="space-x-2"><a download={'capture-'+Date.now()+'.jpg'} href={photo||'#'} className={'px-3 py-1.5 text-sm rounded bg-indigo-600 text-white '+(photo?'':'pointer-events-none opacity-40')}>下载</a><button onClick={upload} disabled={!photo||uploading} className="px-3 py-1.5 text-sm rounded bg-green-600 text-white disabled:bg-gray-300">{uploading?'上传中...':'上传到Supabase'}</button></div></div></div></div>; }
 
-              // Simple Camera component  
-              function Camera() {
-                const [photo, setPhoto] = useState(null);
-                const [streaming, setStreaming] = useState(false);
-
-                const takePhoto = () => {
-                  // Simulate taking a photo
-                  setPhoto('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
-                };
-
-                return (
-                  <div className="bg-white p-6 rounded-lg shadow">
-                    <h2 className="text-lg font-bold mb-4">拍照功能</h2>
-                    <div className="space-y-4">
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={() => setStreaming(!streaming)} 
-                          className={`px-4 py-2 rounded ${streaming ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'}`}
-                        >
-                          {streaming ? '关闭相机' : '打开相机'}
-                        </button>
-                        <button 
-                          onClick={takePhoto} 
-                          disabled={!streaming}
-                          className="px-4 py-2 rounded bg-green-600 text-white disabled:bg-gray-400"
-                        >
-                          拍照
-                        </button>
-                      </div>
-                      <div className="border p-4 rounded bg-gray-50">
-                        <h3 className="font-medium mb-2">相机预览</h3>
-                        <div className="w-64 h-48 bg-gray-200 rounded flex items-center justify-center">
-                          {streaming ? (
-                            <span className="text-gray-600">相机运行中...</span>
-                          ) : (
-                            <span className="text-gray-400">相机未启动</span>
-                          )}
-                        </div>
-                      </div>
-                      {photo && (
-                        <div className="border p-4 rounded">
-                          <h3 className="font-medium mb-2">拍摄照片</h3>
-                          <img src={photo} alt="拍摄的照片" className="w-32 h-24 object-cover rounded" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              }
-
-              // Simple Analytics component
+              // ========= 数据分析 =========
               function Analytics() {
                 const [orders, setOrders] = useState([]);
+                const [products, setProducts] = useState([]);
+                const [activeTab, setActiveTab] = useState('overview');
                 const [loading, setLoading] = useState(true);
+                const lineRef = useRef(null);
+                const doughRef = useRef(null);
+                const productBarRef = useRef(null);
+                const productPieRef = useRef(null);
+                const productOrderRef = useRef(null);
+                const lineChart = useRef(null);
+                const doughChart = useRef(null);
+                const productBarChart = useRef(null);
+                const productPieChart = useRef(null);
+                const productOrderChart = useRef(null);
+
+                // 产品映射表 - 将相似产品名称合并
+                const productMapping = {
+                  '鲜肉小笼汤包 ( 1 袋 9只）': '鲜肉小笼汤包',
+                  '黑松露小笼汤包 ( 1 袋 6只）': '黑松露小笼汤包',
+                  '黑猪三丁纸皮烧卖 ( 1 袋 6只）': '黑猪三丁纸皮烧卖',
+                  '黑猪肉酥饼 (一份 3袋，每 袋 4片）': '黑猪肉酥饼',
+                  '菌菇小笼汤包 ( 1 袋 9只）': '菌菇小笼汤包',
+                  '安格斯牛肉酥饼 (一份 3袋，每 袋 4片）': '安格斯牛肉酥饼',
+                  '黑椒牛肉纸皮烧卖 ( 1 袋 6只）': '黑椒牛肉纸皮烧卖',
+                  '乌米腊味纸皮烧卖 ( 1 袋 6只）': '乌米腊味纸皮烧卖',
+                  '黑猪梅菜干纸皮烧卖 ( 1 袋 6只）': '黑猪梅菜干纸皮烧卖',
+                  '三丁芝士纸皮烧卖 ( 1 袋 6只）': '三丁芝士纸皮烧卖'
+                };
+
+                // 获取合并后的产品名称
+                const getConsolidatedProductName = (originalName) => {
+                  return productMapping[originalName] || originalName;
+                };
 
                 useEffect(() => {
                   const fetchData = async () => {
                     setLoading(true);
-                    const { data } = await supabaseClient.from('orders').select('*');
-                    setOrders(data || []);
+                    try {
+                      // 获取所有历史数据，不再限制时间范围
+                      const [ordersResult, productsResult] = await Promise.all([
+                        supabaseClient.from('orders').select('*').order('created_at', { ascending: false }),
+                        supabaseClient.from('products').select('*')
+                      ]);
+                      
+                      setOrders(ordersResult.data || []);
+                      setProducts(productsResult.data || []);
+                    } catch (error) {
+                      console.error('数据加载失败:', error);
+                    }
                     setLoading(false);
                   };
                   fetchData();
                 }, []);
 
-                if (loading) return <LoadingSpinner text="加载数据分析..." />;
+                // 绘制销售概览图表
+                useEffect(() => {
+                  if (!orders.length || !window.Chart || activeTab !== 'overview') return;
+                  
+                  // 销售趋势图 - 显示最近90天的数据
+                  const dayMap = {};
+                  for (let i = 0; i < 90; i++) {
+                    const d = new Date();
+                    d.setDate(d.getDate() - i);
+                    dayMap[d.toISOString().slice(0, 10)] = 0;
+                  }
+                  
+                  orders.forEach(o => {
+                    const k = o.created_at?.slice(0, 10);
+                    if (dayMap[k] != null) dayMap[k] += Number(o.total_amount) || 0;
+                  });
+                  
+                  const labels = Object.keys(dayMap).sort();
+                  const values = labels.map(k => dayMap[k]);
+                  
+                  if (lineChart.current) lineChart.current.destroy();
+                  if (lineRef.current) {
+                    lineChart.current = new Chart(lineRef.current, {
+                      type: 'line',
+                      data: {
+                        labels,
+                        datasets: [{
+                          label: '每日销售额 (RM)',
+                          data: values,
+                          borderColor: '#dc2626',
+                          backgroundColor: 'rgba(220,38,38,.15)',
+                          fill: true,
+                          tension: .25
+                        }]
+                      }
+                    });
+                  }
+                  
+                  // 预购vs现货占比图
+                  const catMap = {};
+                  orders.forEach(o =>
+                    (o.order_items || []).forEach(it => {
+                      const c = it.is_unlimited ? '预购' : '现货';
+                      catMap[c] = (catMap[c] || 0) + (it.quantity * it.price);
+                    })
+                  );
+                  
+                  if (doughChart.current) doughChart.current.destroy();
+                  if (doughRef.current) {
+                    doughChart.current = new Chart(doughRef.current, {
+                      type: 'doughnut',
+                      data: {
+                        labels: Object.keys(catMap),
+                        datasets: [{
+                          data: Object.values(catMap),
+                          backgroundColor: ['#f87171', '#60a5fa']
+                        }]
+                      },
+                      options: {
+                        plugins: {
+                          legend: { position: 'bottom' }
+                        }
+                      }
+                    });
+                  }
+                }, [orders, activeTab]);
 
-                const totalSales = orders.reduce((sum, order) => sum + Number(order.total_amount), 0);
-                const totalOrders = orders.length;
+                // 绘制产品分析图表
+                useEffect(() => {
+                  if (!orders.length || !window.Chart || activeTab !== 'products') return;
+                  
+                  const topProducts = getTopProducts();
+                  
+                  // 畅销商品销量条形图
+                  if (productBarChart.current) productBarChart.current.destroy();
+                  if (productBarRef.current && topProducts.length > 0) {
+                    productBarChart.current = new Chart(productBarRef.current, {
+                      type: 'bar',
+                      data: {
+                        labels: topProducts.slice(0, 8).map(p => p.name.length > 10 ? p.name.substring(0, 10) + '...' : p.name),
+                        datasets: [{
+                          label: '销售数量',
+                          data: topProducts.slice(0, 8).map(p => p.quantity),
+                          backgroundColor: [
+                            '#fbbf24', '#f59e0b', '#d97706', '#92400e',
+                            '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af'
+                          ],
+                          borderColor: [
+                            '#f59e0b', '#d97706', '#b45309', '#78350f',
+                            '#2563eb', '#1d4ed8', '#1e3a8a', '#1e3a8a'
+                          ],
+                          borderWidth: 1
+                        }]
+                      },
+                      options: {
+                        responsive: true,
+                        plugins: {
+                          legend: { display: false }
+                        },
+                        scales: {
+                          y: {
+                            beginAtZero: true,
+                            title: { display: true, text: '销售数量' }
+                          }
+                        }
+                      }
+                    });
+                  }
+                  
+                  // 产品销售额饼图
+                  if (productPieChart.current) productPieChart.current.destroy();
+                  if (productPieRef.current && topProducts.length > 0) {
+                    productPieChart.current = new Chart(productPieRef.current, {
+                      type: 'pie',
+                      data: {
+                        labels: topProducts.slice(0, 6).map(p => p.name),
+                        datasets: [{
+                          data: topProducts.slice(0, 6).map(p => p.revenue),
+                          backgroundColor: [
+                            '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6'
+                          ],
+                          borderColor: '#ffffff',
+                          borderWidth: 2
+                        }]
+                      },
+                      options: {
+                        responsive: true,
+                        plugins: {
+                          legend: { position: 'bottom' }
+                        }
+                      }
+                    });
+                  }
+                  
+                  // 产品订单频次图
+                  const productOrderStats = {};
+                  orders.forEach(order => {
+                    (order.order_items || []).forEach(item => {
+                      // 排除运费专用项目
+                      if (item.product === '运费专用' || item.product.includes('运费')) return;
+                      
+                      // 使用合并后的产品名称
+                      const consolidatedName = getConsolidatedProductName(item.product);
+                      productOrderStats[consolidatedName] = (productOrderStats[consolidatedName] || 0) + 1;
+                    });
+                  });
+                  
+                  const sortedOrderStats = Object.entries(productOrderStats)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 8);
+                  
+                  if (productOrderChart.current) productOrderChart.current.destroy();
+                  if (productOrderRef.current && sortedOrderStats.length > 0) {
+                    productOrderChart.current = new Chart(productOrderRef.current, {
+                      type: 'doughnut',
+                      data: {
+                        labels: sortedOrderStats.map(([name]) => name.length > 12 ? name.substring(0, 12) + '...' : name),
+                        datasets: [{
+                          data: sortedOrderStats.map(([, count]) => count),
+                          backgroundColor: [
+                            '#10b981', '#06b6d4', '#8b5cf6', '#f59e0b',
+                            '#ef4444', '#84cc16', '#f97316', '#6366f1'
+                          ],
+                          borderColor: '#ffffff',
+                          borderWidth: 2
+                        }]
+                      },
+                      options: {
+                        responsive: true,
+                        plugins: {
+                          legend: { position: 'bottom' }
+                        }
+                      }
+                    });
+                  }
+                }, [orders, activeTab]);
+
+                // 计算畅销商品TOP 10
+                const getTopProducts = () => {
+                  const productSales = {};
+                  orders.forEach(order => {
+                    (order.order_items || []).forEach(item => {
+                      // 排除运费专用项目
+                      if (item.product === '运费专用' || item.product.includes('运费')) return;
+                      
+                      // 使用合并后的产品名称
+                      const consolidatedName = getConsolidatedProductName(item.product);
+                      
+                      if (productSales[consolidatedName]) {
+                        productSales[consolidatedName].quantity += item.quantity;
+                        productSales[consolidatedName].revenue += item.quantity * item.price;
+                        productSales[consolidatedName].variants = productSales[consolidatedName].variants || new Set();
+                        productSales[consolidatedName].variants.add(item.product);
+                      } else {
+                        productSales[consolidatedName] = {
+                          name: consolidatedName,
+                          quantity: item.quantity,
+                          revenue: item.quantity * item.price,
+                          variants: new Set([item.product])
+                        };
+                      }
+                    });
+                  });
+                  
+                  return Object.values(productSales)
+                    .map(product => ({
+                      ...product,
+                      variantCount: product.variants.size,
+                      variants: Array.from(product.variants)
+                    }))
+                    .sort((a, b) => b.quantity - a.quantity)
+                    .slice(0, 10);
+                };
+
+                // 计算所有产品销量
+                const getAllProductSales = () => {
+                  const productSales = {};
+                  orders.forEach(order => {
+                    (order.order_items || []).forEach(item => {
+                      // 排除运费专用项目
+                      if (item.product === '运费专用' || item.product.includes('运费')) return;
+                      
+                      // 使用合并后的产品名称
+                      const consolidatedName = getConsolidatedProductName(item.product);
+                      
+                      if (productSales[consolidatedName]) {
+                        productSales[consolidatedName].quantity += item.quantity;
+                        productSales[consolidatedName].revenue += item.quantity * item.price;
+                        productSales[consolidatedName].orders += 1;
+                        productSales[consolidatedName].variants = productSales[consolidatedName].variants || new Set();
+                        productSales[consolidatedName].variants.add(item.product);
+                      } else {
+                        productSales[consolidatedName] = {
+                          name: consolidatedName,
+                          quantity: item.quantity,
+                          revenue: item.quantity * item.price,
+                          orders: 1,
+                          variants: new Set([item.product])
+                        };
+                      }
+                    });
+                  });
+                  
+                  return Object.values(productSales)
+                    .map(product => ({
+                      ...product,
+                      variantCount: product.variants.size,
+                      variants: Array.from(product.variants)
+                    }))
+                    .sort((a, b) => b.quantity - a.quantity);
+                };
+
+                // 获取低库存产品
+                const getLowStockProducts = () => {
+                  return products.filter(p => {
+                    if (p.is_unlimited) return false;
+                    const stock = p.stock_quantity ?? 0;
+                    const threshold = p.min_stock_threshold ?? 5;
+                    return stock <= threshold;
+                  }).sort((a, b) => (a.stock_quantity ?? 0) - (b.stock_quantity ?? 0));
+                };
+
+                // 计算TOP 10客户
+                const getTopCustomers = () => {
+                  const customerSales = {};
+                  orders.forEach(order => {
+                    const key = `${order.name} (${order.phone})`;
+                    if (customerSales[key]) {
+                      customerSales[key].totalAmount += Number(order.total_amount) || 0;
+                      customerSales[key].orderCount += 1;
+                    } else {
+                      customerSales[key] = {
+                        name: order.name,
+                        phone: order.phone,
+                        totalAmount: Number(order.total_amount) || 0,
+                        orderCount: 1
+                      };
+                    }
+                  });
+                  
+                  return Object.values(customerSales)
+                    .sort((a, b) => b.totalAmount - a.totalAmount)
+                    .slice(0, 10);
+                };
+
+                if (loading) {
+                  return <LoadingSpinner text="加载数据分析..." />;
+                }
+
+                const topProducts = getTopProducts();
+                const allProductSales = getAllProductSales();
+                const lowStockProducts = getLowStockProducts();
+                const topCustomers = getTopCustomers();
 
                 return (
                   <div className="bg-white p-6 rounded-lg shadow space-y-6">
                     <h2 className="text-lg font-bold">数据分析</h2>
                     
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <h3 className="font-medium mb-2">总销售额</h3>
-                        <p className="text-2xl font-bold text-green-600">RM{totalSales.toFixed(2)}</p>
-                      </div>
-                      
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <h3 className="font-medium mb-2">总订单数</h3>
-                        <p className="text-2xl font-bold text-blue-600">{totalOrders}</p>
-                      </div>
+                    {/* 选项卡导航 */}
+                    <div className="border-b">
+                      <nav className="-mb-px flex space-x-8">
+                        {[
+                          { id: 'overview', name: '销售概览', icon: 'chart-line' },
+                          { id: 'products', name: '产品分析', icon: 'box' },
+                          { id: 'inventory', name: '库存分析', icon: 'warehouse' },
+                          { id: 'customers', name: '客户分析', icon: 'users' }
+                        ].map((tab) => (
+                          <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                              activeTab === tab.id
+                                ? 'border-red-500 text-red-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
+                          >
+                            <i className={`fas fa-${tab.icon}`}></i>
+                            {tab.name}
+                          </button>
+                        ))}
+                      </nav>
                     </div>
 
-                    <div>
-                      <h3 className="font-medium mb-4">最近订单</h3>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="bg-gray-50">
-                              <th className="p-2 text-left">订单号</th>
-                              <th className="p-2 text-left">客户</th>
-                              <th className="p-2 text-left">金额</th>
-                              <th className="p-2 text-left">时间</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {orders.slice(0, 10).map(order => (
-                              <tr key={order.id} className="border-b">
-                                <td className="p-2">{order.order_id}</td>
-                                <td className="p-2">{order.name}</td>
-                                <td className="p-2">RM{Number(order.total_amount).toFixed(2)}</td>
-                                <td className="p-2">{new Date(order.created_at).toLocaleDateString()}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                    {/* 销售概览 */}
+                    {activeTab === 'overview' && (
+                      <div className="grid md:grid-cols-2 gap-8">
+                        <div>
+                          <h3 className="font-semibold mb-2">最近90天销售趋势</h3>
+                          <canvas ref={lineRef} height="210"></canvas>
+                        </div>
+                        <div>
+                          <h3 className="font-semibold mb-2">预购 vs 现货 金额占比（全部数据）</h3>
+                          <canvas ref={doughRef} height="210"></canvas>
+                        </div>
                       </div>
-                    </div>
+                    )}
+
+                    {/* 产品分析 */}
+                    {activeTab === 'products' && (
+                      <div className="space-y-8">
+                        {/* 产品分析图表 */}
+                        <div className="grid md:grid-cols-3 gap-6">
+                          <div className="bg-gray-50 p-4 rounded-lg">
+                            <h4 className="font-semibold mb-3 text-center">畅销商品销量排行</h4>
+                            <canvas ref={productBarRef} height="200"></canvas>
+                          </div>
+                          <div className="bg-gray-50 p-4 rounded-lg">
+                            <h4 className="font-semibold mb-3 text-center">销售额占比分布</h4>
+                            <canvas ref={productPieRef} height="200"></canvas>
+                          </div>
+                          <div className="bg-gray-50 p-4 rounded-lg">
+                            <h4 className="font-semibold mb-3 text-center">订单频次分布</h4>
+                            <canvas ref={productOrderRef} height="200"></canvas>
+                          </div>
+                        </div>
+
+                        {/* 畅销商品TOP 10 */}
+                        <div>
+                          <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
+                            <i className="fas fa-trophy text-yellow-500"></i>
+                            畅销商品 TOP 10
+                          </h3>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="bg-gray-50">
+                                  <th className="p-3 text-left">排名</th>
+                                  <th className="p-3 text-left">商品名称</th>
+                                  <th className="p-3 text-left">销售数量</th>
+                                  <th className="p-3 text-left">销售金额</th>
+                                  <th className="p-3 text-left">变体数量</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {topProducts.map((product, index) => (
+                                  <tr key={product.name} className="border-b hover:bg-gray-50">
+                                    <td className="p-3">
+                                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                        index === 0 ? 'bg-yellow-100 text-yellow-800' :
+                                        index === 1 ? 'bg-gray-100 text-gray-800' :
+                                        index === 2 ? 'bg-orange-100 text-orange-800' :
+                                        'bg-blue-100 text-blue-800'
+                                      }`}>
+                                        #{index + 1}
+                                      </span>
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="font-medium">{product.name}</div>
+                                      {product.variantCount > 1 && (
+                                        <div className="text-xs text-gray-500 mt-1">
+                                          包含 {product.variantCount} 个变体
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td className="p-3">{product.quantity}</td>
+                                    <td className="p-3 font-medium text-green-600">RM{product.revenue.toFixed(2)}</td>
+                                    <td className="p-3">
+                                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+                                        {product.variantCount}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                            {topProducts.length === 0 && (
+                              <div className="text-center py-8 text-gray-500">
+                                <i className="fas fa-chart-bar text-4xl mb-2"></i>
+                                <p>暂无销售数据</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 所有产品销量统计 */}
+                        <div>
+                          <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
+                            <i className="fas fa-chart-bar text-blue-500"></i>
+                            所有产品销量统计
+                          </h3>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="bg-gray-50">
+                                  <th className="p-3 text-left">商品名称</th>
+                                  <th className="p-3 text-left">销售数量</th>
+                                  <th className="p-3 text-left">订单次数</th>
+                                  <th className="p-3 text-left">总金额</th>
+                                  <th className="p-3 text-left">平均单价</th>
+                                  <th className="p-3 text-left">变体数量</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {allProductSales.map((product) => (
+                                  <tr key={product.name} className="border-b hover:bg-gray-50">
+                                    <td className="p-3">
+                                      <div className="font-medium">{product.name}</div>
+                                      {product.variantCount > 1 && (
+                                        <div className="text-xs text-gray-500 mt-1">
+                                          变体: {product.variants.slice(0, 2).join(', ')}
+                                          {product.variants.length > 2 && `...等${product.variants.length}种`}
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td className="p-3">{product.quantity}</td>
+                                    <td className="p-3">{product.orders}</td>
+                                    <td className="p-3 text-green-600">RM{product.revenue.toFixed(2)}</td>
+                                    <td className="p-3">RM{(product.revenue / product.quantity).toFixed(2)}</td>
+                                    <td className="p-3">
+                                      <span className={`px-2 py-1 rounded text-xs ${
+                                        product.variantCount > 1 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'
+                                      }`}>
+                                        {product.variantCount}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                            {allProductSales.length === 0 && (
+                              <div className="text-center py-8 text-gray-500">
+                                <i className="fas fa-chart-bar text-4xl mb-2"></i>
+                                <p>暂无销售数据</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 库存分析 */}
+                    {activeTab === 'inventory' && (
+                      <div>
+                        <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
+                          <i className="fas fa-exclamation-triangle text-red-500"></i>
+                          低库存产品监控
+                        </h3>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-gray-50">
+                                <th className="p-3 text-left">商品名称</th>
+                                <th className="p-3 text-left">当前库存</th>
+                                <th className="p-3 text-left">最低库存</th>
+                                <th className="p-3 text-left">状态</th>
+                                <th className="p-3 text-left">建议</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {lowStockProducts.map((product) => {
+                                const stock = product.stock_quantity ?? 0;
+                                const threshold = product.min_stock_threshold ?? 5;
+                                const isOutOfStock = stock === 0;
+                                const isLowStock = stock <= threshold && stock > 0;
+                                
+                                return (
+                                  <tr key={product.id} className="border-b hover:bg-gray-50">
+                                    <td className="p-3 font-medium">{product.name}</td>
+                                    <td className="p-3">
+                                      <span className={`font-medium ${
+                                        isOutOfStock ? 'text-red-600' : isLowStock ? 'text-orange-600' : 'text-green-600'
+                                      }`}>
+                                        {stock}
+                                      </span>
+                                    </td>
+                                    <td className="p-3">{threshold}</td>
+                                    <td className="p-3">
+                                      <span className={`px-2 py-1 rounded-full text-xs ${
+                                        isOutOfStock ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'
+                                      }`}>
+                                        {isOutOfStock ? '缺货' : '低库存'}
+                                      </span>
+                                    </td>
+                                    <td className="p-3 text-sm text-gray-600">
+                                      {isOutOfStock ? '立即补货' : '需要补货'}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                          {lowStockProducts.length === 0 && (
+                            <div className="text-center py-8 text-gray-500">
+                              <i className="fas fa-check-circle text-4xl mb-2 text-green-500"></i>
+                              <p>所有产品库存充足</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 客户分析 */}
+                    {activeTab === 'customers' && (
+                      <div>
+                        <h3 className="font-semibold mb-4 text-lg flex items-center gap-2">
+                          <i className="fas fa-crown text-purple-500"></i>
+                          消费金额最高客户 TOP 10
+                        </h3>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-gray-50">
+                                <th className="p-3 text-left">排名</th>
+                                <th className="p-3 text-left">客户姓名</th>
+                                <th className="p-3 text-left">电话号码</th>
+                                <th className="p-3 text-left">订单次数</th>
+                                <th className="p-3 text-left">消费总额</th>
+                                <th className="p-3 text-left">平均订单金额</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {topCustomers.map((customer, index) => (
+                                <tr key={`${customer.name}-${customer.phone}`} className="border-b hover:bg-gray-50">
+                                  <td className="p-3">
+                                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                      index === 0 ? 'bg-purple-100 text-purple-800' :
+                                      index === 1 ? 'bg-blue-100 text-blue-800' :
+                                      index === 2 ? 'bg-green-100 text-green-800' :
+                                      'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      #{index + 1}
+                                    </span>
+                                  </td>
+                                  <td className="p-3 font-medium">{customer.name}</td>
+                                  <td className="p-3">{customer.phone}</td>
+                                  <td className="p-3">{customer.orderCount}</td>
+                                  <td className="p-3 font-medium text-green-600">RM{customer.totalAmount.toFixed(2)}</td>
+                                  <td className="p-3">RM{(customer.totalAmount / customer.orderCount).toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          {topCustomers.length === 0 && (
+                            <div className="text-center py-8 text-gray-500">
+                              <i className="fas fa-users text-4xl mb-2"></i>
+                              <p>暂无客户数据</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               }
