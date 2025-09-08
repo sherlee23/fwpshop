@@ -317,10 +317,10 @@
         // Supabase Client
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
-        // QR Code URLs - using reliable placeholder images
+        // QR Code URLs - loaded from Supabase storage
         const QR_CODES = {
-            maybank: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0icXIiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHJlY3Qgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjMDAwIi8+PHJlY3QgeD0iMTAiIHk9IjEwIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiMwMDAiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJ1cmwoI3FyKSIvPjx0ZXh0IHg9IjEwMCIgeT0iMTAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iMC4zZW0iIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iI2ZmZiI+TWF5YmFuayBRUjwvdGV4dD48L3N2Zz4=',
-            tng: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0icXIyIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIiB3aWR0aD0iMjAiIGhlaWdodD0iMjAiPjxyZWN0IHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCIgZmlsbD0iIzAwNyIvPjxyZWN0IHg9IjEwIiB5PSIxMCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjMDA3Ii8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0idXJsKCNxcjIpIi8+PHRleHQgeD0iMTAwIiB5PSIxMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIwLjNlbSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE2IiBmaWxsPSIjZmZmIj5UTkcgZVdhbGxldDwvdGV4dD48L3N2Zz4='
+            maybank: `${SUPABASE_URL}/storage/v1/object/public/product-photos/maybank-qr.jpg`,
+            tng: `${SUPABASE_URL}/storage/v1/object/public/product-photos/tng-qr.jpg`
         };
 
         // Toast Component
@@ -452,7 +452,8 @@
                 deliveryMethod: 'pickup',
                 address: '',
                 remarks: '',
-                paymentMethod: 'maybank'
+                paymentMethod: 'maybank',
+                paymentProof: null
             });
             
             const handleSubmit = async (e) => {
@@ -463,7 +464,31 @@
                     return;
                 }
                 
+                if (!formData.paymentProof) {
+                    showToast('请上传付款凭证', 'error');
+                    return;
+                }
+                
                 try {
+                    let paymentProofUrl = null;
+                    
+                    // Upload payment proof if provided
+                    if (formData.paymentProof) {
+                        const fileExt = formData.paymentProof.name.split('.').pop();
+                        const fileName = `payment-proof-${Date.now()}.${fileExt}`;
+                        
+                        const { error: uploadError } = await supabaseClient.storage
+                            .from('product-photos')
+                            .upload(fileName, formData.paymentProof);
+                        
+                        if (uploadError) {
+                            showToast('付款凭证上传失败: ' + uploadError.message, 'error');
+                            return;
+                        }
+                        
+                        paymentProofUrl = `${SUPABASE_URL}/storage/v1/object/public/product-photos/${fileName}`;
+                    }
+                    
                     // Create order in database
                     const orderData = {
                         customer_name: formData.customerName,
@@ -472,6 +497,7 @@
                         delivery_address: formData.address,
                         remarks: formData.remarks,
                         payment_method: formData.paymentMethod,
+                        payment_proof_url: paymentProofUrl,
                         total_amount: total,
                         items: cart.map(item => ({
                             product_id: item.id,
@@ -669,6 +695,22 @@
                                         </div>
                                     </div>
                                 )}
+                            </div>
+                            
+                            {/* Payment Voucher Upload */}
+                            <div className="form-group">
+                                <label className="form-label">上传付款凭证 *</label>
+                                <input 
+                                    type="file"
+                                    className="form-input"
+                                    accept="image/*"
+                                    onChange={(e) => setFormData({...formData, paymentProof: e.target.files[0]})}
+                                    required
+                                    style={{ padding: '0.5rem' }}
+                                />
+                                <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                                    请上传付款截图或转账凭证
+                                </div>
                             </div>
                             
                             <div style={{ marginTop: '1rem', padding: '1rem', background: '#f9fafb', borderRadius: '0.5rem' }}>
