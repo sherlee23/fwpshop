@@ -203,63 +203,9 @@
                             </select>
                         </div>
                         <div id="addressSection" class="hidden">
-                            <div id="selfPickupSection" class="hidden">
-                                <label class="block text-sm font-semibold mb-2">取货地址</label>
-                                <div class="bg-gray-50 p-3 rounded border">
-                                    <p class="text-sm">📍 667, Jalan 24, Taman Perindustrian Ehsan Jaya, Kepong, 52100, Kuala Lumpur.</p>
-                                </div>
-                            </div>
-                            <div id="deliverySection" class="hidden">
-                                <label class="block text-sm font-semibold mb-2">配送地址 *</label>
-                                <textarea id="deliveryAddress" class="form-textarea" placeholder="请输入详细地址" required></textarea>
-                            </div>
+                            <label class="block text-sm font-semibold mb-2">配送地址 *</label>
+                            <textarea id="deliveryAddress" class="form-textarea" placeholder="请输入详细地址"></textarea>
                         </div>
-                        <div>
-                            <label class="block text-sm font-semibold mb-2">支付方式 *</label>
-                            <select id="paymentMethod" class="form-select" required>
-                                <option value="">请选择支付方式</option>
-                                <option value="maybank">Maybank QR Code</option>
-                                <option value="tng">Touch 'n Go eWallet</option>
-                            </select>
-                        </div>
-                        
-                        <!-- Payment QR Codes and Details -->
-                        <div id="paymentDetails" class="hidden">
-                            <div id="maybankDetails" class="hidden">
-                                <div class="bg-gray-50 p-4 rounded-lg">
-                                    <h3 class="font-semibold mb-3">Maybank QR Code 付款</h3>
-                                    <div class="flex flex-col md:flex-row gap-4">
-                                        <div class="flex-1">
-                                            <img id="maybankQR" src="https://edfnhhthztskuuosuasw.supabase.co/storage/v1/object/public/product-photos/maybank-qr.jpg" 
-                                                 alt="Maybank QR Code" class="w-full max-w-xs mx-auto border rounded-lg">
-                                        </div>
-                                        <div class="flex-1">
-                                            <h4 class="font-semibold mb-2">银行转账资料</h4>
-                                            <div class="text-sm space-y-1">
-                                                <p><strong>银行:</strong> Maybank</p>
-                                                <p><strong>户名:</strong> Choong Sher Lee</p>
-                                                <p><strong>账号:</strong> 114209540438</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div id="tngDetails" class="hidden">
-                                <div class="bg-gray-50 p-4 rounded-lg">
-                                    <h3 class="font-semibold mb-3">Touch 'n Go eWallet</h3>
-                                    <img id="tngQR" src="https://edfnhhthztskuuosuasw.supabase.co/storage/v1/object/public/product-photos/tng-qr.jpg" 
-                                         alt="TNG QR Code" class="w-full max-w-xs mx-auto border rounded-lg">
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div id="paymentProofSection" class="hidden">
-                            <label class="block text-sm font-semibold mb-2">上传付款凭证 *</label>
-                            <input type="file" id="paymentProof" class="form-input" accept="image/*" required>
-                            <div class="text-xs text-gray-600 mt-1">请上传付款截图或转账凭证</div>
-                        </div>
-                        
                         <div>
                             <label class="block text-sm font-semibold mb-2">备注</label>
                             <textarea id="orderNotes" class="form-textarea" placeholder="特殊要求或备注"></textarea>
@@ -709,15 +655,11 @@
                             <div class="flex gap-4">
                                 <input type="text" id="searchInput" class="form-input flex-1" placeholder="搜索商品...">
                                 <select id="categoryFilter" class="form-select" style="min-width: 150px;">
-                                    <option value="">🍽️ 全部商品</option>
-                                    <option value="烤肠系列">🌭 烤肠系列</option>
-                                    <option value="烧卖系列">🥟 烧卖系列</option>
-                                    <option value="水饺系列">🥟 水饺系列</option>
-                                    <option value="鱼丸系列">🐟 鱼丸系列</option>
-                                    <option value="面食系列">🍜 面食系列</option>
-                                    <option value="饭类系列">🍚 饭类系列</option>
-                                    <option value="汤品系列">🍲 汤品系列</option>
-                                    <option value="饮料系列">🥤 饮料系列</option>
+                                    <option value="">全部分类</option>
+                                    <option value="预售商品">预售商品</option>
+                                    <option value="现货商品">现货商品</option>
+                                    <option value="调料">调料</option>
+                                    <option value="其他">其他</option>
                                 </select>
                             </div>
                         </div>
@@ -936,9 +878,6 @@
                 // 配送方式变化
                 document.getElementById('deliveryMethod').addEventListener('change', this.handleDeliveryMethodChange);
                 
-                // 支付方式变化
-                document.getElementById('paymentMethod').addEventListener('change', this.handlePaymentMethodChange);
-                
                 // 登录相关
                 document.getElementById('cancelLoginBtn').addEventListener('click', UI.hideLogin);
                 document.getElementById('loginForm').addEventListener('submit', this.handleLogin);
@@ -947,53 +886,14 @@
             
             handleDeliveryMethodChange(e) {
                 const addressSection = document.getElementById('addressSection');
-                const selfPickupSection = document.getElementById('selfPickupSection');
-                const deliverySection = document.getElementById('deliverySection');
                 const deliveryAddress = document.getElementById('deliveryAddress');
                 
                 if (e.target.value === 'lalamove') {
                     addressSection.classList.remove('hidden');
-                    selfPickupSection.classList.add('hidden');
-                    deliverySection.classList.remove('hidden');
                     deliveryAddress.required = true;
-                } else if (e.target.value === 'self_pickup') {
-                    addressSection.classList.remove('hidden');
-                    selfPickupSection.classList.remove('hidden');
-                    deliverySection.classList.add('hidden');
-                    deliveryAddress.required = false;
                 } else {
                     addressSection.classList.add('hidden');
-                    selfPickupSection.classList.add('hidden');
-                    deliverySection.classList.add('hidden');
                     deliveryAddress.required = false;
-                }
-            },
-            
-            handlePaymentMethodChange(e) {
-                const paymentDetails = document.getElementById('paymentDetails');
-                const maybankDetails = document.getElementById('maybankDetails');
-                const tngDetails = document.getElementById('tngDetails');
-                const paymentProofSection = document.getElementById('paymentProofSection');
-                const paymentProof = document.getElementById('paymentProof');
-                
-                if (e.target.value === 'maybank') {
-                    paymentDetails.classList.remove('hidden');
-                    maybankDetails.classList.remove('hidden');
-                    tngDetails.classList.add('hidden');
-                    paymentProofSection.classList.remove('hidden');
-                    paymentProof.required = true;
-                } else if (e.target.value === 'tng') {
-                    paymentDetails.classList.remove('hidden');
-                    maybankDetails.classList.add('hidden');
-                    tngDetails.classList.remove('hidden');
-                    paymentProofSection.classList.remove('hidden');
-                    paymentProof.required = true;
-                } else {
-                    paymentDetails.classList.add('hidden');
-                    maybankDetails.classList.add('hidden');
-                    tngDetails.classList.add('hidden');
-                    paymentProofSection.classList.add('hidden');
-                    paymentProof.required = false;
                 }
             },
             
@@ -1003,31 +903,12 @@
                 const phone = document.getElementById('customerPhone').value.trim();
                 const name = document.getElementById('customerName').value.trim();
                 const deliveryMethod = document.getElementById('deliveryMethod').value;
-                const paymentMethod = document.getElementById('paymentMethod').value;
-                const paymentProofFile = document.getElementById('paymentProof').files[0];
                 const address = document.getElementById('deliveryAddress').value.trim();
                 const notes = document.getElementById('orderNotes').value.trim();
                 
                 // 验证手机号
                 if (!validateWhatsAppPhone(phone)) {
                     AppState.showMessage('请输入正确的手机号码', 'error');
-                    return;
-                }
-                
-                // 验证配送地址
-                if (deliveryMethod === 'lalamove' && !address) {
-                    AppState.showMessage('请输入配送地址', 'error');
-                    return;
-                }
-                
-                // 验证支付方式和付款凭证
-                if (!paymentMethod) {
-                    AppState.showMessage('请选择支付方式', 'error');
-                    return;
-                }
-                
-                if (!paymentProofFile) {
-                    AppState.showMessage('请上传付款凭证', 'error');
                     return;
                 }
                 
@@ -1039,7 +920,6 @@
                     customer_name: name,
                     delivery_method: deliveryMethod,
                     delivery_address: deliveryMethod === 'lalamove' ? address : AppConfig.SELF_PICKUP_ADDRESS,
-                    payment_method: paymentMethod,
                     notes: notes,
                     items: AppState.cart,
                     total_amount: AppState.getCartTotal(),
@@ -1048,23 +928,6 @@
                 };
                 
                 try {
-                    // 上传付款凭证
-                    AppState.showMessage('正在上传付款凭证...', 'info');
-                    const timestamp = Date.now();
-                    const fileName = `payment-proof-${orderId}-${timestamp}.${paymentProofFile.name.split('.').pop()}`;
-                    
-                    const { error: uploadError } = await supabase.storage
-                        .from('product-photos')
-                        .upload(fileName, paymentProofFile);
-                    
-                    if (uploadError) {
-                        throw new Error('付款凭证上传失败: ' + uploadError.message);
-                    }
-                    
-                    orderData.payment_proof_url = `${AppConfig.SUPABASE_URL}/storage/v1/object/public/product-photos/${fileName}`;
-                    
-                    // 提交订单
-                    AppState.showMessage('正在提交订单...', 'info');
                     // 保存订单到数据库
                     const { error } = await supabase.from('orders').insert(orderData);
                     if (error) throw error;
