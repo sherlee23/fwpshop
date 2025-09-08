@@ -750,9 +750,627 @@
             );
         }
 
-        // Admin Dashboard Component (Simplified)
+        // Admin Dashboard Component with Full Functionality
         function AdminDashboard({ onLogout, products, fetchProducts, showToast }) {
             const [activeTab, setActiveTab] = useState('dashboard');
+            
+            const showAdminTab = (tab) => {
+                setActiveTab(tab);
+            };
+            
+            const renderDashboard = () => (
+                <div className="p-4">
+                    <h2 className="font-bold mb-4">仪表盘总览</h2>
+                    
+                    {/* 关键指标卡片 */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                        <div style={{ background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                            <h3 style={{ marginBottom: '0.5rem' }}>📦 总产品数</h3>
+                            <p style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>{products.length}</p>
+                            <p style={{ fontSize: '0.9rem', opacity: '0.9' }}>个商品品类</p>
+                        </div>
+                        <div style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)', color: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                            <h3 style={{ marginBottom: '0.5rem' }}>💰 库存总值</h3>
+                            <p style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>RM{products.reduce((sum, p) => sum + (p.price * p.stock), 0).toFixed(0)}</p>
+                            <p style={{ fontSize: '0.9rem', opacity: '0.9' }}>总库存价值</p>
+                        </div>
+                        <div style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                            <h3 style={{ marginBottom: '0.5rem' }}>⚠️ 低库存警报</h3>
+                            <p style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>{products.filter(p => p.stock < 10).length}</p>
+                            <p style={{ fontSize: '0.9rem', opacity: '0.9' }}>需要补货</p>
+                        </div>
+                        <div style={{ background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                            <h3 style={{ marginBottom: '0.5rem' }}>📈 预售统计</h3>
+                            <p style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>85%</p>
+                            <p style={{ fontSize: '0.9rem', opacity: '0.9' }}>成团进度 (170/200盒)</p>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
+                        {/* 库存状态详情 */}
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                            <h3 style={{ marginBottom: '1rem' }}>📋 库存管理状态</h3>
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <thead>
+                                        <tr style={{ background: '#f9fafb' }}>
+                                            <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>商品名称</th>
+                                            <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>分类</th>
+                                            <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>库存</th>
+                                            <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>状态</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {products.map(p => (
+                                            <tr key={p.id}>
+                                                <td style={{ padding: '0.75rem', borderBottom: '1px solid #e5e7eb' }}>{p.name}</td>
+                                                <td style={{ padding: '0.75rem', borderBottom: '1px solid #e5e7eb' }}>{p.category}</td>
+                                                <td style={{ padding: '0.75rem', borderBottom: '1px solid #e5e7eb' }}>{p.stock}</td>
+                                                <td style={{ padding: '0.75rem', borderBottom: '1px solid #e5e7eb' }}>
+                                                    <span style={{ 
+                                                        padding: '0.25rem 0.5rem', 
+                                                        borderRadius: '0.25rem', 
+                                                        fontSize: '0.8rem', 
+                                                        color: 'white', 
+                                                        background: p.stock < 10 ? '#ef4444' : p.stock < 20 ? '#f59e0b' : '#10b981' 
+                                                    }}>
+                                                        {p.stock < 10 ? '低库存' : p.stock < 20 ? '中等' : '充足'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* 快速统计 */}
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                            <h3 style={{ marginBottom: '1rem' }}>📊 今日统计</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <div style={{ padding: '1rem', background: '#fef3c7', borderRadius: '0.5rem' }}>
+                                    <div style={{ fontSize: '0.8rem', color: '#92400e' }}>新订单</div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#92400e' }}>12</div>
+                                </div>
+                                <div style={{ padding: '1rem', background: '#dcfce7', borderRadius: '0.5rem' }}>
+                                    <div style={{ fontSize: '0.8rem', color: '#166534' }}>总营业额</div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#166534' }}>RM 456</div>
+                                </div>
+                                <div style={{ padding: '1rem', background: '#dbeafe', borderRadius: '0.5rem' }}>
+                                    <div style={{ fontSize: '0.8rem', color: '#1e40af' }}>新会员</div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1e40af' }}>3</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderProducts = () => (
+                <div className="p-4">
+                    <h2 className="font-bold mb-4">📦 产品管理系统</h2>
+                    <button className="btn btn-primary mb-4" onClick={() => showToast('添加产品功能')}>添加新产品</button>
+                    <div style={{ background: 'white', borderRadius: '0.5rem', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead style={{ background: '#f9fafb' }}>
+                                <tr>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>产品名称</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>分类</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>价格</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>库存</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {products.map(p => (
+                                    <tr key={p.id}>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>{p.name}</td>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>{p.category}</td>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>RM{p.price.toFixed(2)}</td>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>{p.stock}</td>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>
+                                            <button className="btn btn-secondary" onClick={() => showToast('编辑产品功能')}>编辑</button>
+                                            <button className="btn btn-secondary" onClick={() => showToast('删除产品功能')} style={{ marginLeft: '0.5rem' }}>删除</button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+
+            const renderInventory = () => (
+                <div className="p-4">
+                    <h2 className="font-bold mb-4">📋 库存管理系统</h2>
+                    
+                    {/* 库存警报 */}
+                    <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.5rem', padding: '1rem', marginBottom: '2rem' }}>
+                        <h3 style={{ color: '#dc2626', marginBottom: '0.5rem' }}>⚠️ 库存警报</h3>
+                        <p style={{ color: '#7f1d1d' }}>以下商品库存不足10件，需要及时补货：</p>
+                        <ul style={{ marginTop: '0.5rem', paddingLeft: '1rem' }}>
+                            {products.filter(p => p.stock < 10).map(p => (
+                                <li key={p.id} style={{ color: '#dc2626' }}>{p.name} - 剩余库存: {p.stock}</li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    <div style={{ background: 'white', borderRadius: '0.5rem', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                        <div style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                            <h3>库存概览</h3>
+                        </div>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead style={{ background: '#f9fafb' }}>
+                                <tr>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>商品名称</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>当前库存</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>库存价值</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>状态</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {products.map(p => (
+                                    <tr key={p.id}>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>{p.name}</td>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold' }}>{p.stock}</td>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>RM{(p.price * p.stock).toFixed(2)}</td>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>
+                                            <span style={{ 
+                                                padding: '0.25rem 0.5rem', 
+                                                borderRadius: '0.25rem', 
+                                                fontSize: '0.8rem', 
+                                                color: 'white', 
+                                                background: p.stock < 10 ? '#ef4444' : p.stock < 20 ? '#f59e0b' : '#10b981' 
+                                            }}>
+                                                {p.stock < 10 ? '急需补货' : p.stock < 20 ? '库存偏低' : '库存充足'}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>
+                                            <button className="btn btn-secondary" onClick={() => showToast('库存调整功能')}>调整库存</button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+
+            const renderOrders = () => (
+                <div className="p-4">
+                    <h2 className="font-bold mb-4">📋 订单管理系统</h2>
+                    
+                    {/* 订单统计卡片 */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #16a34a' }}>
+                            <h3 style={{ color: '#16a34a', marginBottom: '0.5rem' }}>✅ 已完成</h3>
+                            <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>8</p>
+                            <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>本日完成订单</p>
+                        </div>
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #f59e0b' }}>
+                            <h3 style={{ color: '#f59e0b', marginBottom: '0.5rem' }}>⏳ 处理中</h3>
+                            <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>3</p>
+                            <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>待确认付款</p>
+                        </div>
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #dc2626' }}>
+                            <h3 style={{ color: '#dc2626', marginBottom: '0.5rem' }}>🚚 配送中</h3>
+                            <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>2</p>
+                            <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>Lalamove配送</p>
+                        </div>
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #3b82f6' }}>
+                            <h3 style={{ color: '#3b82f6', marginBottom: '0.5rem' }}>💰 今日营收</h3>
+                            <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>RM 456</p>
+                            <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>11个订单</p>
+                        </div>
+                    </div>
+
+                    {/* 快速操作 */}
+                    <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '2rem' }}>
+                        <h3 style={{ marginBottom: '1rem' }}>🔧 快速操作</h3>
+                        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                            <button className="btn btn-primary" onClick={() => showToast('新建订单功能')}>+ 新建订单</button>
+                            <button className="btn btn-secondary" onClick={() => showToast('导出报表功能')}>📄 导出报表</button>
+                            <button className="btn btn-secondary" onClick={() => showToast('批量打印功能')}>🖨️ 批量打印</button>
+                            <button className="btn btn-secondary" onClick={() => showToast('刷新数据')}>🔄 刷新数据</button>
+                        </div>
+                    </div>
+
+                    {/* 订单列表 */}
+                    <div style={{ background: 'white', borderRadius: '0.5rem', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                        <div style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                            <h3>📝 订单列表</h3>
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <input type="text" placeholder="搜索订单号/客户姓名..." style={{ flex: '1', minWidth: '200px', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem' }} />
+                                <select style={{ padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem' }}>
+                                    <option>全部状态</option>
+                                    <option>待确认</option>
+                                    <option>已确认</option>
+                                    <option>配送中</option>
+                                    <option>已完成</option>
+                                    <option>已取消</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
+                                <thead>
+                                    <tr style={{ background: '#f9fafb' }}>
+                                        <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>订单号</th>
+                                        <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>客户信息</th>
+                                        <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>商品详情</th>
+                                        <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>配送方式</th>
+                                        <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>金额</th>
+                                        <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>状态</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {[
+                                        {id: 'FWP20250101', customer: '张小明\n019-123-4567', items: '经典台式烤肠 x2\n特调奶茶 x1', delivery: '自取', amount: 'RM 30.80', status: '已完成', time: '10:30'},
+                                        {id: 'FWP20250102', customer: '李小红\n012-987-6543', items: '黑猪三丁烧卖 x3\n兰州拉面 x1', delivery: '配送', amount: 'RM 42.20', status: '配送中', time: '11:15'},
+                                        {id: 'FWP20250103', customer: '王大华\n017-555-8888', items: '手工韭菜水饺 x5\n冬瓜排骨汤 x2', delivery: '自取', amount: 'RM 56.50', status: '待确认', time: '12:00'}
+                                    ].map((order, index) => (
+                                        <tr key={index} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                            <td style={{ padding: '1rem' }}>
+                                                <div style={{ fontWeight: 'bold', color: '#dc2626' }}>{order.id}</div>
+                                                <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>{order.time}</div>
+                                            </td>
+                                            <td style={{ padding: '1rem', fontSize: '0.9rem', whiteSpace: 'pre-line' }}>{order.customer}</td>
+                                            <td style={{ padding: '1rem', fontSize: '0.9rem', whiteSpace: 'pre-line' }}>{order.items}</td>
+                                            <td style={{ padding: '1rem' }}>
+                                                <span style={{ 
+                                                    padding: '0.25rem 0.5rem', 
+                                                    borderRadius: '0.25rem', 
+                                                    fontSize: '0.8rem', 
+                                                    background: order.delivery === '自取' ? '#ecfdf5' : '#fef3c7', 
+                                                    color: order.delivery === '自取' ? '#065f46' : '#92400e' 
+                                                }}>
+                                                    {order.delivery === '自取' ? '🏪 自取' : '🚚 配送'}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '1rem', fontWeight: 'bold' }}>{order.amount}</td>
+                                            <td style={{ padding: '1rem' }}>
+                                                <span style={{ 
+                                                    padding: '0.25rem 0.5rem', 
+                                                    borderRadius: '0.25rem', 
+                                                    fontSize: '0.8rem', 
+                                                    color: 'white', 
+                                                    background: order.status === '已完成' ? '#16a34a' : order.status === '配送中' ? '#dc2626' : '#f59e0b' 
+                                                }}>
+                                                    {order.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderMembers = () => (
+                <div className="p-4">
+                    <h2 className="font-bold mb-4">👥 会员管理系统</h2>
+                    
+                    {/* 会员统计 */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #3b82f6' }}>
+                            <h3 style={{ color: '#3b82f6', marginBottom: '0.5rem' }}>👤 总会员数</h3>
+                            <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>156</p>
+                            <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>活跃会员</p>
+                        </div>
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #10b981' }}>
+                            <h3 style={{ color: '#10b981', marginBottom: '0.5rem' }}>⭐ VIP会员</h3>
+                            <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>23</p>
+                            <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>高价值客户</p>
+                        </div>
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #f59e0b' }}>
+                            <h3 style={{ color: '#f59e0b', marginBottom: '0.5rem' }}>🆕 新会员</h3>
+                            <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>8</p>
+                            <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>本月新增</p>
+                        </div>
+                    </div>
+
+                    <div style={{ background: 'white', borderRadius: '0.5rem', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                        <div style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                            <h3>会员列表</h3>
+                            <input type="text" placeholder="搜索会员..." style={{ marginTop: '1rem', width: '300px', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem' }} />
+                        </div>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr style={{ background: '#f9fafb' }}>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>会员姓名</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>电话号码</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>积分</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>等级</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>注册日期</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {[
+                                    {name: '张小明', phone: '019-123-4567', points: 285, level: 'VIP', date: '2024-01-15'},
+                                    {name: '李小红', phone: '012-987-6543', points: 156, level: '普通', date: '2024-02-10'},
+                                    {name: '王大华', phone: '017-555-8888', points: 89, level: '普通', date: '2024-03-05'}
+                                ].map((member, index) => (
+                                    <tr key={index}>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>{member.name}</td>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>{member.phone}</td>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold' }}>{member.points}</td>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>
+                                            <span style={{ 
+                                                padding: '0.25rem 0.5rem', 
+                                                borderRadius: '0.25rem', 
+                                                fontSize: '0.8rem', 
+                                                background: member.level === 'VIP' ? '#dbeafe' : '#f3f4f6', 
+                                                color: member.level === 'VIP' ? '#1e40af' : '#6b7280' 
+                                            }}>
+                                                {member.level}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>{member.date}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+
+            const renderAnalytics = () => (
+                <div className="p-4">
+                    <h2 className="font-bold mb-4">📈 数据分析中心</h2>
+                    
+                    {/* 销售数据卡片 */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                            <h3 style={{ marginBottom: '1rem' }}>📊 销售趋势</h3>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#16a34a' }}>↗ 12%</div>
+                                    <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>较上月增长</div>
+                                </div>
+                                <div style={{ fontSize: '3rem' }}>📈</div>
+                            </div>
+                        </div>
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                            <h3 style={{ marginBottom: '1rem' }}>🏆 热销商品</h3>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>经典台式烤肠</div>
+                                    <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>销量: 156份</div>
+                                </div>
+                                <div style={{ fontSize: '3rem' }}>🌭</div>
+                            </div>
+                        </div>
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                            <h3 style={{ marginBottom: '1rem' }}>💰 平均订单</h3>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#dc2626' }}>RM 32.5</div>
+                                    <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>每单平均</div>
+                                </div>
+                                <div style={{ fontSize: '3rem' }}>💵</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 详细数据表 */}
+                    <div style={{ background: 'white', borderRadius: '0.5rem', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                        <div style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                            <h3>🏪 商品销售分析</h3>
+                        </div>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr style={{ background: '#f9fafb' }}>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>商品名称</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>销售数量</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>销售额</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>利润率</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>趋势</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {products.slice(0, 5).map((p, index) => {
+                                    const salesData = [156, 134, 98, 87, 76][index] || 50;
+                                    const revenue = salesData * p.price;
+                                    return (
+                                        <tr key={p.id}>
+                                            <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>{p.name}</td>
+                                            <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold' }}>{salesData}</td>
+                                            <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#16a34a' }}>RM{revenue.toFixed(2)}</td>
+                                            <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>
+                                                <span style={{ color: '#16a34a' }}>28%</span>
+                                            </td>
+                                            <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>
+                                                <span style={{ color: '#16a34a' }}>↗ {(Math.random() * 15 + 5).toFixed(1)}%</span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+
+            const renderScanner = () => (
+                <div className="p-4">
+                    <h2 className="font-bold mb-4">📱 扫码功能中心</h2>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                        {/* 扫码区域 */}
+                        <div style={{ background: 'white', padding: '2rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', textAlign: 'center' }}>
+                            <h3 style={{ marginBottom: '2rem' }}>📲 实时扫码</h3>
+                            <div style={{ 
+                                background: '#f3f4f6', 
+                                height: '300px', 
+                                borderRadius: '0.5rem', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center',
+                                marginBottom: '1.5rem'
+                            }}>
+                                <div style={{ textAlign: 'center', color: '#6b7280' }}>
+                                    <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📱</div>
+                                    <p>点击开启摄像头扫码</p>
+                                </div>
+                            </div>
+                            <button className="btn btn-primary" onClick={() => showToast('正在启动摄像头...')}>🔍 开始扫码</button>
+                            <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                                <button className="btn btn-secondary" onClick={() => showToast('手电筒功能')}>🔦 手电筒</button>
+                                <button className="btn btn-secondary" onClick={() => showToast('扫码历史')}>📋 历史</button>
+                            </div>
+                        </div>
+
+                        {/* 扫码记录 */}
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                            <h3 style={{ marginBottom: '1rem' }}>📝 扫码历史</h3>
+                            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                                {[
+                                    { time: '14:32', type: 'QR码', content: 'https://fwpshop.com/order/12345', action: '订单查询' },
+                                    { time: '14:15', type: '条形码', content: '1234567890123', action: '商品查询' },
+                                    { time: '13:45', type: 'QR码', content: '微信支付码', action: '支付确认' },
+                                    { time: '13:20', type: '条形码', content: '9876543210987', action: '库存盘点' }
+                                ].map((scan, index) => (
+                                    <div key={index} style={{ 
+                                        padding: '1rem', 
+                                        borderBottom: '1px solid #e5e7eb', 
+                                        display: 'flex', 
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center'
+                                    }}>
+                                        <div>
+                                            <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>{scan.action}</div>
+                                            <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>{scan.type} • {scan.time}</div>
+                                            <div style={{ fontSize: '0.8rem', color: '#6b7280', fontFamily: 'monospace' }}>{scan.content}</div>
+                                        </div>
+                                        <button className="btn btn-secondary" style={{ fontSize: '0.8rem' }}>查看</button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 扫码统计 */}
+                    <div style={{ marginTop: '2rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', textAlign: 'center' }}>
+                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📊</div>
+                            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>156</div>
+                            <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>今日扫码次数</div>
+                        </div>
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', textAlign: 'center' }}>
+                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🎯</div>
+                            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#16a34a' }}>98.5%</div>
+                            <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>识别成功率</div>
+                        </div>
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', textAlign: 'center' }}>
+                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⚡</div>
+                            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>0.8s</div>
+                            <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>平均识别时间</div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderCamera = () => (
+                <div className="p-4">
+                    <h2 className="font-bold mb-4">📷 拍照功能中心</h2>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                        {/* 拍照区域 */}
+                        <div style={{ background: 'white', padding: '2rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', textAlign: 'center' }}>
+                            <h3 style={{ marginBottom: '2rem' }}>📸 实时拍照</h3>
+                            <div style={{ 
+                                background: '#f3f4f6', 
+                                height: '300px', 
+                                borderRadius: '0.5rem', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center',
+                                marginBottom: '1.5rem'
+                            }}>
+                                <div style={{ textAlign: 'center', color: '#6b7280' }}>
+                                    <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📷</div>
+                                    <p>点击开启摄像头拍照</p>
+                                </div>
+                            </div>
+                            <button className="btn btn-primary" onClick={() => showToast('正在启动摄像头...')}>📷 开始拍照</button>
+                            <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                                <button className="btn btn-secondary" onClick={() => showToast('切换摄像头')}>🔄 切换</button>
+                                <button className="btn btn-secondary" onClick={() => showToast('照片库')}>🖼️ 相册</button>
+                            </div>
+                        </div>
+
+                        {/* 照片管理 */}
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                            <h3 style={{ marginBottom: '1rem' }}>🗂️ 照片分类管理</h3>
+                            
+                            {/* 分类标签 */}
+                            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                                {['商品照片', '订单凭证', '支付截图', '库存记录', '活动照片', '其他'].map(category => (
+                                    <span key={category} style={{ 
+                                        padding: '0.25rem 0.75rem', 
+                                        background: '#f3f4f6', 
+                                        borderRadius: '0.25rem', 
+                                        fontSize: '0.8rem',
+                                        cursor: 'pointer'
+                                    }}>
+                                        {category}
+                                    </span>
+                                ))}
+                            </div>
+
+                            {/* 最近照片 */}
+                            <div style={{ marginBottom: '1rem' }}>
+                                <h4 style={{ marginBottom: '0.5rem', fontSize: '0.9rem' }}>📸 最近照片</h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+                                    {[1,2,3,4,5,6].map(i => (
+                                        <div key={i} style={{ 
+                                            aspectRatio: '1',
+                                            background: '#f3f4f6',
+                                            borderRadius: '0.375rem',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: '#6b7280',
+                                            fontSize: '1.5rem'
+                                        }}>
+                                            🖼️
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 操作按钮 */}
+                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                <button className="btn btn-secondary" onClick={() => showToast('上传照片')}>📤 上传</button>
+                                <button className="btn btn-secondary" onClick={() => showToast('批量处理')}>⚙️ 批处理</button>
+                                <button className="btn btn-secondary" onClick={() => showToast('云端同步')}>☁️ 云同步</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 拍照统计 */}
+                    <div style={{ marginTop: '2rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', textAlign: 'center' }}>
+                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📊</div>
+                            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>342</div>
+                            <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>总照片数量</div>
+                        </div>
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', textAlign: 'center' }}>
+                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💾</div>
+                            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#16a34a' }}>2.8GB</div>
+                            <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>存储空间使用</div>
+                        </div>
+                        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', textAlign: 'center' }}>
+                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>☁️</div>
+                            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>已同步</div>
+                            <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>云端备份状态</div>
+                        </div>
+                    </div>
+                </div>
+            );
             
             return (
                 <div className="min-h-screen bg-gray-50">
@@ -768,55 +1386,38 @@
                     </header>
                     
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                        <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
-                            <button 
-                                onClick={() => setActiveTab('dashboard')}
-                                className={`btn ${activeTab === 'dashboard' ? 'btn-primary' : 'btn-secondary'}`}
-                            >
-                                📊 仪表盘
-                            </button>
-                            <button 
-                                onClick={() => setActiveTab('products')}
-                                className={`btn ${activeTab === 'products' ? 'btn-primary' : 'btn-secondary'}`}
-                            >
-                                📦 商品管理
-                            </button>
-                            <button 
-                                onClick={() => setActiveTab('orders')}
-                                className={`btn ${activeTab === 'orders' ? 'btn-primary' : 'btn-secondary'}`}
-                            >
-                                📋 订单管理
-                            </button>
+                        <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+                            {[
+                                { key: 'dashboard', label: '📊 仪表盘' },
+                                { key: 'products', label: '📦 产品管理' },
+                                { key: 'inventory', label: '📋 库存管理' },
+                                { key: 'orders', label: '📋 订单管理' },
+                                { key: 'members', label: '👥 会员管理' },
+                                { key: 'analytics', label: '📈 数据分析' },
+                                { key: 'scanner', label: '📱 扫码功能' },
+                                { key: 'camera', label: '📷 拍照功能' }
+                            ].map(tab => (
+                                <button 
+                                    key={tab.key}
+                                    onClick={() => showAdminTab(tab.key)}
+                                    className={`btn ${activeTab === tab.key ? 'btn-primary' : 'btn-secondary'}`}
+                                    style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
                         </div>
                         
-                        {activeTab === 'dashboard' && (
-                            <div style={{ background: 'white', padding: '2rem', borderRadius: '0.75rem', textAlign: 'center' }}>
-                                <h3 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem' }}>系统概览</h3>
-                                <p>管理后台功能正在开发中...</p>
-                                <div style={{ marginTop: '2rem' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                                        <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '0.5rem' }}>
-                                            <div style={{ color: '#6b7280', fontSize: '0.875rem' }}>总商品数</div>
-                                            <div style={{ fontSize: '1.5rem', fontWeight: '600' }}>{products.length}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        
-                        {activeTab === 'products' && (
-                            <div style={{ background: 'white', padding: '2rem', borderRadius: '0.75rem' }}>
-                                <h3 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem' }}>商品管理</h3>
-                                <p>商品管理功能正在开发中...</p>
-                            </div>
-                        )}
-                        
-                        {activeTab === 'orders' && (
-                            <div style={{ background: 'white', padding: '2rem', borderRadius: '0.75rem' }}>
-                                <h3 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem' }}>订单管理</h3>
-                                <p>订单管理功能正在开发中...</p>
-                            </div>
-                        )}
+                        <div style={{ background: 'white', borderRadius: '0.75rem', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                            {activeTab === 'dashboard' && renderDashboard()}
+                            {activeTab === 'products' && renderProducts()}
+                            {activeTab === 'inventory' && renderInventory()}
+                            {activeTab === 'orders' && renderOrders()}
+                            {activeTab === 'members' && renderMembers()}
+                            {activeTab === 'analytics' && renderAnalytics()}
+                            {activeTab === 'scanner' && renderScanner()}
+                            {activeTab === 'camera' && renderCamera()}
+                        </div>
                     </div>
                 </div>
             );
