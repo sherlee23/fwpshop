@@ -317,10 +317,10 @@
         // Supabase Client
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
-        // QR Code URLs - using reliable placeholder images
+        // QR Code URLs
         const QR_CODES = {
-            maybank: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0icXIiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHJlY3Qgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjMDAwIi8+PHJlY3QgeD0iMTAiIHk9IjEwIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiMwMDAiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJ1cmwoI3FyKSIvPjx0ZXh0IHg9IjEwMCIgeT0iMTAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iMC4zZW0iIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iI2ZmZiI+TWF5YmFuayBRUjwvdGV4dD48L3N2Zz4=',
-            tng: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0icXIyIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIiB3aWR0aD0iMjAiIGhlaWdodD0iMjAiPjxyZWN0IHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCIgZmlsbD0iIzAwNyIvPjxyZWN0IHg9IjEwIiB5PSIxMCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjMDA3Ii8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0idXJsKCNxcjIpIi8+PHRleHQgeD0iMTAwIiB5PSIxMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIwLjNlbSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE2IiBmaWxsPSIjZmZmIj5UTkcgZVdhbGxldDwvdGV4dD48L3N2Zz4='
+            maybank: 'https://edfnhhthztskuuosuasw.supabase.co/storage/v1/object/public/QR-code/maybank-qr.jpg',
+            tng: 'https://edfnhhthztskuuosuasw.supabase.co/storage/v1/object/public/QR-code/tng-qr.jpg'
         };
 
         // Toast Component
@@ -339,8 +339,8 @@
 
         // Product Card Component
         function ProductCard({ product, onAddToCart }) {
-            const isOutOfStock = !product.is_unlimited && product.stock_quantity === 0;
-            const stockText = product.is_unlimited ? '预购商品' : `库存: ${product.stock_quantity}`;
+            const isOutOfStock = !product.is_unlimited && product.stock === 0;
+            const stockText = product.is_unlimited ? '预购商品' : `库存: ${product.stock}`;
             
             return (
                 <div className="product-card">
@@ -495,7 +495,7 @@
                         if (!item.is_unlimited) {
                             await supabaseClient
                                 .from('products')
-                                .update({ stock_quantity: item.stock_quantity - item.quantity })
+                                .update({ stock_quantity: item.stock - item.quantity })
                                 .eq('id', item.id);
                         }
                     }
@@ -753,60 +753,9 @@
         // Admin Dashboard Component with Full Functionality
         function AdminDashboard({ onLogout, products, fetchProducts, showToast }) {
             const [activeTab, setActiveTab] = useState('dashboard');
-            const [orders, setOrders] = useState([]);
-            const [members, setMembers] = useState([]);
-            const [loading, setLoading] = useState(false);
-            
-            // Fetch real data from Supabase
-            const fetchOrders = async () => {
-                try {
-                    setLoading(true);
-                    const { data, error } = await supabaseClient
-                        .from('orders')
-                        .select('*')
-                        .order('created_at', { ascending: false });
-                    if (error) throw error;
-                    setOrders(data || []);
-                } catch (error) {
-                    showToast('获取订单数据失败: ' + error.message, 'error');
-                    setOrders([]);
-                } finally {
-                    setLoading(false);
-                }
-            };
-
-            const fetchMembers = async () => {
-                try {
-                    setLoading(true);
-                    const { data, error } = await supabaseClient
-                        .from('members')
-                        .select('*')
-                        .order('created_at', { ascending: false });
-                    if (error) throw error;
-                    setMembers(data || []);
-                } catch (error) {
-                    showToast('获取会员数据失败: ' + error.message, 'error');
-                    setMembers([]);
-                } finally {
-                    setLoading(false);
-                }
-            };
-
-            // Load data when component mounts
-            useEffect(() => {
-                fetchOrders();
-                fetchMembers();
-            }, []);
             
             const showAdminTab = (tab) => {
                 setActiveTab(tab);
-                // Refresh data when switching tabs
-                if (tab === 'orders') fetchOrders();
-                if (tab === 'members') fetchMembers();
-                if (tab === 'analytics') {
-                    fetchOrders();
-                    fetchMembers();
-                }
             };
             
             const renderDashboard = () => (
@@ -822,18 +771,18 @@
                         </div>
                         <div style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)', color: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
                             <h3 style={{ marginBottom: '0.5rem' }}>💰 库存总值</h3>
-                            <p style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>RM{products.reduce((sum, p) => sum + (p.price * p.stock_quantity), 0).toFixed(0)}</p>
+                            <p style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>RM{products.reduce((sum, p) => sum + (p.price * p.stock), 0).toFixed(0)}</p>
                             <p style={{ fontSize: '0.9rem', opacity: '0.9' }}>总库存价值</p>
                         </div>
                         <div style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
                             <h3 style={{ marginBottom: '0.5rem' }}>⚠️ 低库存警报</h3>
-                            <p style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>{products.filter(p => p.stock_quantity < 10).length}</p>
+                            <p style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>{products.filter(p => p.stock < 10).length}</p>
                             <p style={{ fontSize: '0.9rem', opacity: '0.9' }}>需要补货</p>
                         </div>
                         <div style={{ background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                            <h3 style={{ marginBottom: '0.5rem' }}>📊 订单统计</h3>
-                            <p style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>{orders.length}</p>
-                            <p style={{ fontSize: '0.9rem', opacity: '0.9' }}>总订单数量</p>
+                            <h3 style={{ marginBottom: '0.5rem' }}>📈 预售统计</h3>
+                            <p style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>85%</p>
+                            <p style={{ fontSize: '0.9rem', opacity: '0.9' }}>成团进度 (170/200盒)</p>
                         </div>
                     </div>
 
@@ -856,16 +805,16 @@
                                             <tr key={p.id}>
                                                 <td style={{ padding: '0.75rem', borderBottom: '1px solid #e5e7eb' }}>{p.name}</td>
                                                 <td style={{ padding: '0.75rem', borderBottom: '1px solid #e5e7eb' }}>{p.category}</td>
-                                                <td style={{ padding: '0.75rem', borderBottom: '1px solid #e5e7eb' }}>{p.stock_quantity}</td>
+                                                <td style={{ padding: '0.75rem', borderBottom: '1px solid #e5e7eb' }}>{p.stock}</td>
                                                 <td style={{ padding: '0.75rem', borderBottom: '1px solid #e5e7eb' }}>
                                                     <span style={{ 
                                                         padding: '0.25rem 0.5rem', 
                                                         borderRadius: '0.25rem', 
                                                         fontSize: '0.8rem', 
                                                         color: 'white', 
-                                                        background: p.stock_quantity < 10 ? '#ef4444' : p.stock_quantity < 20 ? '#f59e0b' : '#10b981' 
+                                                        background: p.stock < 10 ? '#ef4444' : p.stock < 20 ? '#f59e0b' : '#10b981' 
                                                     }}>
-                                                        {p.stock_quantity < 10 ? '低库存' : p.stock_quantity < 20 ? '中等' : '充足'}
+                                                        {p.stock < 10 ? '低库存' : p.stock < 20 ? '中等' : '充足'}
                                                     </span>
                                                 </td>
                                             </tr>
@@ -877,19 +826,19 @@
 
                         {/* 快速统计 */}
                         <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                            <h3 style={{ marginBottom: '1rem' }}>📊 实时统计</h3>
+                            <h3 style={{ marginBottom: '1rem' }}>📊 今日统计</h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 <div style={{ padding: '1rem', background: '#fef3c7', borderRadius: '0.5rem' }}>
-                                    <div style={{ fontSize: '0.8rem', color: '#92400e' }}>总订单</div>
-                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#92400e' }}>{orders.length}</div>
+                                    <div style={{ fontSize: '0.8rem', color: '#92400e' }}>新订单</div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#92400e' }}>12</div>
                                 </div>
                                 <div style={{ padding: '1rem', background: '#dcfce7', borderRadius: '0.5rem' }}>
                                     <div style={{ fontSize: '0.8rem', color: '#166534' }}>总营业额</div>
-                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#166534' }}>RM {orders.reduce((sum, order) => sum + (order.total_amount || 0), 0).toFixed(2)}</div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#166534' }}>RM 456</div>
                                 </div>
                                 <div style={{ padding: '1rem', background: '#dbeafe', borderRadius: '0.5rem' }}>
-                                    <div style={{ fontSize: '0.8rem', color: '#1e40af' }}>总会员</div>
-                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1e40af' }}>{members.length}</div>
+                                    <div style={{ fontSize: '0.8rem', color: '#1e40af' }}>新会员</div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1e40af' }}>3</div>
                                 </div>
                             </div>
                         </div>
@@ -918,7 +867,7 @@
                                         <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>{p.name}</td>
                                         <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>{p.category}</td>
                                         <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>RM{p.price.toFixed(2)}</td>
-                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>{p.stock_quantity}</td>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>{p.stock}</td>
                                         <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>
                                             <button className="btn btn-secondary" onClick={() => showToast('编辑产品功能')}>编辑</button>
                                             <button className="btn btn-secondary" onClick={() => showToast('删除产品功能')} style={{ marginLeft: '0.5rem' }}>删除</button>
@@ -940,8 +889,8 @@
                         <h3 style={{ color: '#dc2626', marginBottom: '0.5rem' }}>⚠️ 库存警报</h3>
                         <p style={{ color: '#7f1d1d' }}>以下商品库存不足10件，需要及时补货：</p>
                         <ul style={{ marginTop: '0.5rem', paddingLeft: '1rem' }}>
-                            {products.filter(p => p.stock_quantity < 10).map(p => (
-                                <li key={p.id} style={{ color: '#dc2626' }}>{p.name} - 剩余库存: {p.stock_quantity}</li>
+                            {products.filter(p => p.stock < 10).map(p => (
+                                <li key={p.id} style={{ color: '#dc2626' }}>{p.name} - 剩余库存: {p.stock}</li>
                             ))}
                         </ul>
                     </div>
@@ -964,17 +913,17 @@
                                 {products.map(p => (
                                     <tr key={p.id}>
                                         <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>{p.name}</td>
-                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold' }}>{p.stock_quantity}</td>
-                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>RM{(p.price * p.stock_quantity).toFixed(2)}</td>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold' }}>{p.stock}</td>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>RM{(p.price * p.stock).toFixed(2)}</td>
                                         <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>
                                             <span style={{ 
                                                 padding: '0.25rem 0.5rem', 
                                                 borderRadius: '0.25rem', 
                                                 fontSize: '0.8rem', 
                                                 color: 'white', 
-                                                background: p.stock_quantity < 10 ? '#ef4444' : p.stock_quantity < 20 ? '#f59e0b' : '#10b981' 
+                                                background: p.stock < 10 ? '#ef4444' : p.stock < 20 ? '#f59e0b' : '#10b981' 
                                             }}>
-                                                {p.stock_quantity < 10 ? '急需补货' : p.stock_quantity < 20 ? '库存偏低' : '库存充足'}
+                                                {p.stock < 10 ? '急需补货' : p.stock < 20 ? '库存偏低' : '库存充足'}
                                             </span>
                                         </td>
                                         <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>
@@ -996,23 +945,23 @@
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
                         <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #16a34a' }}>
                             <h3 style={{ color: '#16a34a', marginBottom: '0.5rem' }}>✅ 已完成</h3>
-                            <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>{orders.filter(o => o.status === 'completed').length}</p>
-                            <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>已完成订单</p>
+                            <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>8</p>
+                            <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>本日完成订单</p>
                         </div>
                         <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #f59e0b' }}>
                             <h3 style={{ color: '#f59e0b', marginBottom: '0.5rem' }}>⏳ 处理中</h3>
-                            <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>{orders.filter(o => o.status === 'pending' || o.status === 'confirmed').length}</p>
-                            <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>待处理订单</p>
+                            <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>3</p>
+                            <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>待确认付款</p>
                         </div>
                         <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #dc2626' }}>
                             <h3 style={{ color: '#dc2626', marginBottom: '0.5rem' }}>🚚 配送中</h3>
-                            <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>{orders.filter(o => o.status === 'shipping').length}</p>
-                            <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>配送中订单</p>
+                            <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>2</p>
+                            <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>Lalamove配送</p>
                         </div>
                         <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #3b82f6' }}>
-                            <h3 style={{ color: '#3b82f6', marginBottom: '0.5rem' }}>💰 总营收</h3>
-                            <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>RM {orders.reduce((sum, order) => sum + (order.total_amount || 0), 0).toFixed(2)}</p>
-                            <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>{orders.length}个订单</p>
+                            <h3 style={{ color: '#3b82f6', marginBottom: '0.5rem' }}>💰 今日营收</h3>
+                            <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>RM 456</p>
+                            <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>11个订单</p>
                         </div>
                     </div>
 
@@ -1056,64 +1005,43 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {loading ? (
-                                        <tr>
-                                            <td colSpan="6" style={{ padding: '2rem', textAlign: 'center' }}>
-                                                <div style={{ color: '#6b7280' }}>正在加载订单数据...</div>
+                                    {[
+                                        {id: 'FWP20250101', customer: '张小明\n019-123-4567', items: '经典台式烤肠 x2\n特调奶茶 x1', delivery: '自取', amount: 'RM 30.80', status: '已完成', time: '10:30'},
+                                        {id: 'FWP20250102', customer: '李小红\n012-987-6543', items: '黑猪三丁烧卖 x3\n兰州拉面 x1', delivery: '配送', amount: 'RM 42.20', status: '配送中', time: '11:15'},
+                                        {id: 'FWP20250103', customer: '王大华\n017-555-8888', items: '手工韭菜水饺 x5\n冬瓜排骨汤 x2', delivery: '自取', amount: 'RM 56.50', status: '待确认', time: '12:00'}
+                                    ].map((order, index) => (
+                                        <tr key={index} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                            <td style={{ padding: '1rem' }}>
+                                                <div style={{ fontWeight: 'bold', color: '#dc2626' }}>{order.id}</div>
+                                                <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>{order.time}</div>
+                                            </td>
+                                            <td style={{ padding: '1rem', fontSize: '0.9rem', whiteSpace: 'pre-line' }}>{order.customer}</td>
+                                            <td style={{ padding: '1rem', fontSize: '0.9rem', whiteSpace: 'pre-line' }}>{order.items}</td>
+                                            <td style={{ padding: '1rem' }}>
+                                                <span style={{ 
+                                                    padding: '0.25rem 0.5rem', 
+                                                    borderRadius: '0.25rem', 
+                                                    fontSize: '0.8rem', 
+                                                    background: order.delivery === '自取' ? '#ecfdf5' : '#fef3c7', 
+                                                    color: order.delivery === '自取' ? '#065f46' : '#92400e' 
+                                                }}>
+                                                    {order.delivery === '自取' ? '🏪 自取' : '🚚 配送'}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: '1rem', fontWeight: 'bold' }}>{order.amount}</td>
+                                            <td style={{ padding: '1rem' }}>
+                                                <span style={{ 
+                                                    padding: '0.25rem 0.5rem', 
+                                                    borderRadius: '0.25rem', 
+                                                    fontSize: '0.8rem', 
+                                                    color: 'white', 
+                                                    background: order.status === '已完成' ? '#16a34a' : order.status === '配送中' ? '#dc2626' : '#f59e0b' 
+                                                }}>
+                                                    {order.status}
+                                                </span>
                                             </td>
                                         </tr>
-                                    ) : orders.length === 0 ? (
-                                        <tr>
-                                            <td colSpan="6" style={{ padding: '2rem', textAlign: 'center' }}>
-                                                <div style={{ color: '#6b7280' }}>暂无订单数据</div>
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        orders.slice(0, 10).map((order, index) => (
-                                            <tr key={order.id || index} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                                                <td style={{ padding: '1rem' }}>
-                                                    <div style={{ fontWeight: 'bold', color: '#dc2626' }}>#{order.id}</div>
-                                                    <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
-                                                        {order.created_at ? new Date(order.created_at).toLocaleString('zh-CN') : '-'}
-                                                    </div>
-                                                </td>
-                                                <td style={{ padding: '1rem', fontSize: '0.9rem' }}>
-                                                    <div>{order.customer_name || '-'}</div>
-                                                    <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>{order.phone || '-'}</div>
-                                                </td>
-                                                <td style={{ padding: '1rem', fontSize: '0.9rem' }}>
-                                                    {order.items ? JSON.stringify(order.items).substring(0, 50) + '...' : '-'}
-                                                </td>
-                                                <td style={{ padding: '1rem' }}>
-                                                    <span style={{ 
-                                                        padding: '0.25rem 0.5rem', 
-                                                        borderRadius: '0.25rem', 
-                                                        fontSize: '0.8rem', 
-                                                        background: order.delivery_method === 'pickup' ? '#ecfdf5' : '#fef3c7', 
-                                                        color: order.delivery_method === 'pickup' ? '#065f46' : '#92400e' 
-                                                    }}>
-                                                        {order.delivery_method === 'pickup' ? '🏪 自取' : '🚚 配送'}
-                                                    </span>
-                                                </td>
-                                                <td style={{ padding: '1rem', fontWeight: 'bold' }}>RM {(order.total_amount || 0).toFixed(2)}</td>
-                                                <td style={{ padding: '1rem' }}>
-                                                    <span style={{ 
-                                                        padding: '0.25rem 0.5rem', 
-                                                        borderRadius: '0.25rem', 
-                                                        fontSize: '0.8rem', 
-                                                        color: 'white', 
-                                                        background: order.status === 'completed' ? '#16a34a' : order.status === 'shipping' ? '#dc2626' : '#f59e0b' 
-                                                    }}>
-                                                        {order.status === 'pending' ? '待确认' : 
-                                                         order.status === 'confirmed' ? '已确认' : 
-                                                         order.status === 'shipping' ? '配送中' : 
-                                                         order.status === 'completed' ? '已完成' : 
-                                                         order.status === 'cancelled' ? '已取消' : order.status}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
+                                    ))}
                                 </tbody>
                             </table>
                         </div>
@@ -1129,18 +1057,18 @@
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
                         <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #3b82f6' }}>
                             <h3 style={{ color: '#3b82f6', marginBottom: '0.5rem' }}>👤 总会员数</h3>
-                            <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>{members.length}</p>
-                            <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>注册会员</p>
+                            <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>156</p>
+                            <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>活跃会员</p>
                         </div>
                         <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #10b981' }}>
                             <h3 style={{ color: '#10b981', marginBottom: '0.5rem' }}>⭐ VIP会员</h3>
-                            <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>{members.filter(m => m.is_vip).length}</p>
+                            <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>23</p>
                             <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>高价值客户</p>
                         </div>
                         <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', borderLeft: '4px solid #f59e0b' }}>
-                            <h3 style={{ color: '#f59e0b', marginBottom: '0.5rem' }}>💎 积分总计</h3>
-                            <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>{members.reduce((sum, m) => sum + (m.points || 0), 0)}</p>
-                            <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>总积分</p>
+                            <h3 style={{ color: '#f59e0b', marginBottom: '0.5rem' }}>🆕 新会员</h3>
+                            <p style={{ fontSize: '2rem', fontWeight: 'bold' }}>8</p>
+                            <p style={{ fontSize: '0.9rem', color: '#6b7280' }}>本月新增</p>
                         </div>
                     </div>
 
@@ -1160,41 +1088,29 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {loading ? (
-                                    <tr>
-                                        <td colSpan="5" style={{ padding: '2rem', textAlign: 'center' }}>
-                                            <div style={{ color: '#6b7280' }}>正在加载会员数据...</div>
+                                {[
+                                    {name: '张小明', phone: '019-123-4567', points: 285, level: 'VIP', date: '2024-01-15'},
+                                    {name: '李小红', phone: '012-987-6543', points: 156, level: '普通', date: '2024-02-10'},
+                                    {name: '王大华', phone: '017-555-8888', points: 89, level: '普通', date: '2024-03-05'}
+                                ].map((member, index) => (
+                                    <tr key={index}>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>{member.name}</td>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>{member.phone}</td>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold' }}>{member.points}</td>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>
+                                            <span style={{ 
+                                                padding: '0.25rem 0.5rem', 
+                                                borderRadius: '0.25rem', 
+                                                fontSize: '0.8rem', 
+                                                background: member.level === 'VIP' ? '#dbeafe' : '#f3f4f6', 
+                                                color: member.level === 'VIP' ? '#1e40af' : '#6b7280' 
+                                            }}>
+                                                {member.level}
+                                            </span>
                                         </td>
+                                        <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>{member.date}</td>
                                     </tr>
-                                ) : members.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="5" style={{ padding: '2rem', textAlign: 'center' }}>
-                                            <div style={{ color: '#6b7280' }}>暂无会员数据</div>
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    members.slice(0, 10).map((member, index) => (
-                                        <tr key={member.id || index}>
-                                            <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>{member.name || '-'}</td>
-                                            <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>{member.phone || '-'}</td>
-                                            <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold' }}>{member.points || 0}</td>
-                                            <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>
-                                                <span style={{ 
-                                                    padding: '0.25rem 0.5rem', 
-                                                    borderRadius: '0.25rem', 
-                                                    fontSize: '0.8rem', 
-                                                    background: member.is_vip ? '#dbeafe' : '#f3f4f6', 
-                                                    color: member.is_vip ? '#1e40af' : '#6b7280' 
-                                                }}>
-                                                    {member.is_vip ? 'VIP' : '普通'}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>
-                                                {member.created_at ? new Date(member.created_at).toLocaleDateString('zh-CN') : '-'}
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
+                                ))}
                             </tbody>
                         </table>
                     </div>
@@ -1211,29 +1127,27 @@
                             <h3 style={{ marginBottom: '1rem' }}>📊 销售趋势</h3>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div>
-                                    <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#16a34a' }}>RM {orders.reduce((sum, order) => sum + (order.total_amount || 0), 0).toFixed(2)}</div>
-                                    <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>总销售额</div>
+                                    <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#16a34a' }}>↗ 12%</div>
+                                    <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>较上月增长</div>
                                 </div>
                                 <div style={{ fontSize: '3rem' }}>📈</div>
                             </div>
                         </div>
                         <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                            <h3 style={{ marginBottom: '1rem' }}>🏆 商品数量</h3>
+                            <h3 style={{ marginBottom: '1rem' }}>🏆 热销商品</h3>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div>
-                                    <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{products.length}</div>
-                                    <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>种商品</div>
+                                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>经典台式烤肠</div>
+                                    <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>销量: 156份</div>
                                 </div>
-                                <div style={{ fontSize: '3rem' }}>🛍️</div>
+                                <div style={{ fontSize: '3rem' }}>🌭</div>
                             </div>
                         </div>
                         <div style={{ background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
                             <h3 style={{ marginBottom: '1rem' }}>💰 平均订单</h3>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div>
-                                    <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#dc2626' }}>
-                                        RM {orders.length > 0 ? (orders.reduce((sum, order) => sum + (order.total_amount || 0), 0) / orders.length).toFixed(2) : '0.00'}
-                                    </div>
+                                    <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#dc2626' }}>RM 32.5</div>
                                     <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>每单平均</div>
                                 </div>
                                 <div style={{ fontSize: '3rem' }}>💵</div>
@@ -1541,8 +1455,7 @@
                     const formattedProducts = data.map(product => ({
                         ...product,
                         image: product.image_url || product.image || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik03MCA3MEgxMzBWMTMwSDcwVjcwWiIgZmlsbD0iI0Q5RDlEOSIvPgo8cGF0aCBkPSJNODUgODVIMTE1VjExNUg4NVY4NVoiIGZpbGw9IiNCNUI1QjUiLz4KPC9zdmc+',
-                        // Keep original field name to avoid confusion
-                        stock_quantity: product.stock_quantity || 0
+                        stock: product.stock_quantity || 0
                     }));
                     
                     setProducts(formattedProducts);
@@ -1601,21 +1514,9 @@
                 ? products 
                 : products.filter(p => p.category === activeCategory);
             
-            // Add to cart function with stock validation
+            // Add to cart function
             const addToCart = (product) => {
                 const existingItem = cart.find(item => item.id === product.id);
-                
-                // Check stock limits for non-unlimited products
-                if (!product.is_unlimited) {
-                    const currentCartQuantity = existingItem ? existingItem.quantity : 0;
-                    const newQuantity = currentCartQuantity + 1;
-                    
-                    if (newQuantity > product.stock_quantity) {
-                        showToast(`库存不足！${product.name} 仅剩 ${product.stock_quantity} 件`, 'error');
-                        return;
-                    }
-                }
-                
                 if (existingItem) {
                     updateQuantity(product.id, existingItem.quantity + 1);
                 } else {
@@ -1624,20 +1525,11 @@
                 showToast(`${product.name} 已添加到购物车`);
             };
             
-            // Update quantity with stock validation
+            // Update quantity
             const updateQuantity = (productId, newQuantity) => {
                 if (newQuantity <= 0) {
                     setCart(cart.filter(item => item.id !== productId));
                 } else {
-                    // Find the product to check stock limits
-                    const cartItem = cart.find(item => item.id === productId);
-                    const product = products.find(p => p.id === productId);
-                    
-                    if (product && !product.is_unlimited && newQuantity > product.stock_quantity) {
-                        showToast(`库存不足！${product.name} 仅剩 ${product.stock_quantity} 件`, 'error');
-                        return;
-                    }
-                    
                     setCart(cart.map(item => 
                         item.id === productId 
                             ? { ...item, quantity: newQuantity }
