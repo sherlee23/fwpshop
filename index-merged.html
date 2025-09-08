@@ -1,0 +1,1984 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://edfnhhthztskuuosuasw.supabase.co/storage/v1/object/public/product-photos/icon3.jpg">
+    <title>锋味派美食团购系统</title>
+    
+    <!-- ===== 功能开关配置 ===== -->
+    <script>
+        // 🎯 会员功能配置开关 - 在此控制所有会员相关功能
+        window.MEMBER_CONFIG = {
+            ENABLE_MEMBER_SYSTEM: true,        // 启用会员系统
+            ENABLE_MEMBER_LOGIN: true,         // 启用会员登录
+            ENABLE_MEMBER_POINTS: true,        // 启用积分系统
+            ENABLE_ORDER_HISTORY: true,       // 启用订单历史
+            ENABLE_PHONE_VERIFICATION: true,  // 启用手机号验证
+            ENABLE_AUTO_MEMBER_CREATE: true,  // 启用自动创建会员
+            ENABLE_MEMBER_BACKEND: true       // 启用后台会员管理
+        };
+        
+        // 🔧 系统功能配置
+        window.SYSTEM_CONFIG = {
+            ENABLE_INVENTORY_MANAGEMENT: true, // 启用库存管理
+            ENABLE_CATEGORY_NAVIGATION: true,  // 启用分类导航
+            ENABLE_SHOPPING_CART: true,        // 启用购物车
+            ENABLE_ADMIN_BACKEND: true,        // 启用管理后台
+            ENABLE_WHATSAPP_NOTIFY: true,      // 启用WhatsApp通知
+            ENABLE_PAYMENT_PROOF: true,        // 启用支付凭证
+            ENABLE_SCANNER_CAMERA: true        // 启用扫码拍照功能
+        };
+    </script>
+    
+    <!-- ===== Supabase 配置内嵌 ===== -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    
+    <!-- ===== 增强CSS样式 - 融合设计系统 ===== -->
+    <style>
+        /* 设计系统变量 */
+        :root {
+            --color-background: #fcfcf9;
+            --color-surface: #fffffd;
+            --color-text: #13343b;
+            --color-text-secondary: #626c71;
+            --color-primary: #21808d;
+            --color-primary-hover: #1d7480;
+            --color-primary-active: #1a6873;
+            --color-secondary: rgba(94, 82, 64, 0.12);
+            --color-border: rgba(94, 82, 64, 0.2);
+            --color-error: #c0152f;
+            --color-success: #21808d;
+            --color-warning: #a84b2f;
+            --color-focus-ring: rgba(33, 128, 141, 0.4);
+            
+            --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            --font-size-sm: 0.875rem;
+            --font-size-base: 1rem;
+            --font-size-lg: 1.125rem;
+            --font-size-xl: 1.25rem;
+            --font-size-2xl: 1.5rem;
+            --font-size-3xl: 1.875rem;
+            
+            --space-1: 0.25rem;
+            --space-2: 0.5rem;
+            --space-3: 0.75rem;
+            --space-4: 1rem;
+            --space-5: 1.25rem;
+            --space-6: 1.5rem;
+            --space-8: 2rem;
+            
+            --radius-sm: 0.375rem;
+            --radius-base: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-full: 9999px;
+            
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 暗色模式 */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --color-background: #1f2121;
+                --color-surface: #262828;
+                --color-text: #f5f5f5;
+                --color-text-secondary: rgba(167, 169, 169, 0.7);
+                --color-primary: #32b8c6;
+                --color-border: rgba(119, 124, 124, 0.3);
+            }
+        }
+        
+        /* 基础样式重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font-family-base);
+            font-size: var(--font-size-base);
+            line-height: 1.6;
+            color: var(--color-text);
+            background-color: var(--color-background);
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        /* 🎨 组件样式 */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--space-4);
+        }
+        
+        /* 按钮系统 */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+            padding: var(--space-2) var(--space-4);
+            border: none;
+            border-radius: var(--radius-base);
+            font-size: var(--font-size-sm);
+            font-weight: 600;
+            line-height: 1.5;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            position: relative;
+        }
+        
+        .btn:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px var(--color-focus-ring);
+        }
+        
+        .btn--primary {
+            background: var(--color-primary);
+            color: white;
+        }
+        
+        .btn--primary:hover {
+            background: var(--color-primary-hover);
+            transform: translateY(-1px);
+        }
+        
+        .btn--secondary {
+            background: var(--color-secondary);
+            color: var(--color-text);
+        }
+        
+        .btn--danger {
+            background: var(--color-error);
+            color: white;
+        }
+        
+        .btn--success {
+            background: var(--color-success);
+            color: white;
+        }
+        
+        /* 表单控件 */
+        .form-control {
+            display: block;
+            width: 100%;
+            padding: var(--space-2) var(--space-3);
+            font-size: var(--font-size-base);
+            line-height: 1.5;
+            color: var(--color-text);
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-base);
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+        
+        .form-control:focus {
+            border-color: var(--color-primary);
+            outline: none;
+            box-shadow: 0 0 0 3px var(--color-focus-ring);
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: var(--space-2);
+            font-weight: 600;
+            font-size: var(--font-size-sm);
+            color: var(--color-text);
+        }
+        
+        .form-group {
+            margin-bottom: var(--space-4);
+        }
+        
+        /* 密码可见性切换 */
+        .password-input-container {
+            position: relative;
+        }
+        
+        .password-toggle {
+            position: absolute;
+            right: var(--space-3);
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            padding: var(--space-1);
+            border-radius: var(--radius-sm);
+        }
+        
+        .password-toggle:hover {
+            color: var(--color-text);
+            background: var(--color-secondary);
+        }
+        
+        /* 卡片组件 */
+        .card {
+            background-color: var(--color-surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-border);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            transition: box-shadow 0.2s ease;
+        }
+        
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+        
+        .card__body {
+            padding: var(--space-4);
+        }
+        
+        /* 导航栏 */
+        .navbar {
+            background: var(--color-primary);
+            color: white;
+            padding: var(--space-4) 0;
+            box-shadow: var(--shadow-md);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+        
+        /* 分类导航 */
+        .category-nav {
+            background: var(--color-surface);
+            border-bottom: 1px solid var(--color-border);
+            padding: var(--space-3) 0;
+            position: sticky;
+            top: 70px;
+            z-index: 40;
+        }
+        
+        .category-buttons {
+            display: flex;
+            gap: var(--space-2);
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 0 var(--space-4);
+        }
+        
+        .category-btn {
+            padding: var(--space-2) var(--space-4);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-full);
+            background: var(--color-surface);
+            color: var(--color-text);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            font-size: var(--font-size-sm);
+        }
+        
+        .category-btn:hover,
+        .category-btn.active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+            transform: translateY(-1px);
+        }
+        
+        /* 购物车侧边栏 */
+        .cart-sidebar {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100vh;
+            background: var(--color-surface);
+            box-shadow: var(--shadow-lg);
+            transition: right 0.3s ease;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .cart-sidebar.open {
+            right: 0;
+        }
+        
+        .cart-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 90;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .cart-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* 购物车徽章 */
+        .cart-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: var(--color-error);
+            color: white;
+            border-radius: var(--radius-full);
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        /* 浮动购物车按钮 */
+        .floating-cart {
+            position: fixed;
+            bottom: var(--space-6);
+            right: var(--space-6);
+            z-index: 40;
+        }
+        
+        .floating-cart-btn {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
+            color: white;
+            border: none;
+            border-radius: var(--radius-full);
+            padding: var(--space-4);
+            box-shadow: var(--shadow-lg);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+        
+        .floating-cart-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 产品网格 */
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: var(--space-6);
+            padding: var(--space-6) 0;
+        }
+        
+        .product-card {
+            background: var(--color-surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .product-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+        }
+        
+        .product-info {
+            padding: var(--space-4);
+        }
+        
+        .product-name {
+            font-weight: 600;
+            font-size: var(--font-size-lg);
+            margin-bottom: var(--space-2);
+            color: var(--color-text);
+        }
+        
+        .product-price {
+            font-size: var(--font-size-xl);
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: var(--space-3);
+        }
+        
+        /* 管理后台布局 */
+        .admin-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        .admin-sidebar {
+            width: 250px;
+            background: var(--color-surface);
+            border-right: 1px solid var(--color-border);
+            padding: var(--space-6) 0;
+        }
+        
+        .admin-content {
+            flex: 1;
+            padding: var(--space-6);
+            background: var(--color-background);
+            overflow-y: auto;
+        }
+        
+        .admin-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .admin-nav-item {
+            display: flex;
+            align-items: center;
+            padding: var(--space-3) var(--space-6);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+            color: var(--color-text);
+        }
+        
+        .admin-nav-item:hover,
+        .admin-nav-item.active {
+            background: var(--color-secondary);
+            border-left-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+        
+        .admin-nav-icon {
+            font-size: var(--font-size-lg);
+            margin-right: var(--space-3);
+            width: 20px;
+        }
+        
+        /* 状态指示器 */
+        .status {
+            display: inline-flex;
+            align-items: center;
+            padding: var(--space-1) var(--space-3);
+            border-radius: var(--radius-full);
+            font-weight: 600;
+            font-size: var(--font-size-sm);
+        }
+        
+        .status--success {
+            background: rgba(33, 128, 141, 0.1);
+            color: var(--color-success);
+            border: 1px solid rgba(33, 128, 141, 0.2);
+        }
+        
+        .status--warning {
+            background: rgba(168, 75, 47, 0.1);
+            color: var(--color-warning);
+            border: 1px solid rgba(168, 75, 47, 0.2);
+        }
+        
+        .status--error {
+            background: rgba(192, 21, 47, 0.1);
+            color: var(--color-error);
+            border: 1px solid rgba(192, 21, 47, 0.2);
+        }
+        
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--color-surface);
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .modal-header {
+            padding: var(--space-5);
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-body {
+            padding: var(--space-5);
+        }
+        
+        .modal-footer {
+            padding: var(--space-5);
+            border-top: 1px solid var(--color-border);
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--space-3);
+        }
+        
+        /* 登录界面 */
+        .login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        
+        .login-container {
+            background: var(--color-surface);
+            padding: var(--space-8);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        .login-header h1 {
+            color: var(--color-primary);
+            margin-bottom: var(--space-2);
+            font-size: var(--font-size-3xl);
+        }
+        
+        .login-header p {
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-6);
+        }
+        
+        .login-form {
+            text-align: left;
+        }
+        
+        /* 表格样式 */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: var(--space-4);
+            background: var(--color-surface);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: var(--space-3);
+            text-align: left;
+            border-bottom: 1px solid var(--color-border);
+        }
+        
+        .data-table th {
+            background: var(--color-secondary);
+            font-weight: 600;
+            color: var(--color-text);
+        }
+        
+        .data-table tr:hover {
+            background: var(--color-secondary);
+        }
+        
+        /* 工具栏 */
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-4);
+            gap: var(--space-4);
+            flex-wrap: wrap;
+        }
+        
+        .toolbar-left,
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+        
+        /* 加载状态 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--color-border);
+            border-radius: 50%;
+            border-top-color: var(--color-primary);
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: var(--space-8);
+            color: var(--color-text-secondary);
+        }
+        
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: var(--space-4);
+        }
+        
+        /* 通知消息 */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            padding: var(--space-3) var(--space-4);
+            border-radius: var(--radius-base);
+            max-width: 300px;
+            box-shadow: var(--shadow-lg);
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .toast.success {
+            background: rgba(33, 128, 141, 0.1);
+            color: var(--color-success);
+            border: 1px solid rgba(33, 128, 141, 0.2);
+        }
+        
+        .toast.error {
+            background: rgba(192, 21, 47, 0.1);
+            color: var(--color-error);
+            border: 1px solid rgba(192, 21, 47, 0.2);
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 var(--space-3);
+            }
+            
+            .products-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: var(--space-4);
+            }
+            
+            .category-buttons {
+                justify-content: flex-start;
+                overflow-x: auto;
+                flex-wrap: nowrap;
+                padding-bottom: var(--space-2);
+            }
+            
+            .cart-sidebar {
+                width: 100%;
+                right: -100%;
+            }
+            
+            .admin-layout {
+                flex-direction: column;
+            }
+            
+            .admin-sidebar {
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--color-border);
+            }
+            
+            .admin-nav {
+                display: flex;
+                overflow-x: auto;
+                padding: 0 var(--space-4);
+            }
+            
+            .admin-nav-item {
+                flex: 0 0 auto;
+                padding: var(--space-2) var(--space-4);
+                border-left: none;
+                border-bottom: 3px solid transparent;
+            }
+            
+            .admin-nav-item:hover,
+            .admin-nav-item.active {
+                border-left: none;
+                border-bottom-color: var(--color-primary);
+            }
+            
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .toolbar-left,
+            .toolbar-right {
+                justify-content: center;
+            }
+        }
+        
+        /* 库存状态 */
+        .stock-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: var(--space-1) var(--space-2);
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .stock-badge--in-stock {
+            background: rgba(33, 128, 141, 0.1);
+            color: var(--color-success);
+        }
+        
+        .stock-badge--low-stock {
+            background: rgba(168, 75, 47, 0.1);
+            color: var(--color-warning);
+        }
+        
+        .stock-badge--out-of-stock {
+            background: rgba(192, 21, 47, 0.1);
+            color: var(--color-error);
+        }
+        
+        /* 产品徽章 */
+        .product-badge {
+            position: absolute;
+            top: var(--space-3);
+            right: var(--space-3);
+            background: var(--color-primary);
+            color: white;
+            padding: var(--space-1) var(--space-2);
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .product-badge--presale {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        }
+        
+        .product-badge--low-stock {
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* 页面标题 */
+        .page-header {
+            margin-bottom: var(--space-6);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: var(--space-4);
+        }
+        
+        .page-title {
+            font-size: var(--font-size-3xl);
+            font-weight: 700;
+            color: var(--color-text);
+            margin: 0;
+        }
+        
+        .page-subtitle {
+            margin: var(--space-1) 0 0 0;
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-base);
+        }
+        
+        /* 功能切换开关 */
+        .feature-toggle {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            margin-bottom: var(--space-4);
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #ccc;
+            transition: 0.4s;
+            border-radius: 24px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background: var(--color-primary);
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+        
+        /* 统计卡片 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--space-4);
+            margin-bottom: var(--space-6);
+        }
+        
+        .stat-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-5);
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s ease;
+        }
+        
+        .stat-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+        
+        .stat-icon {
+            font-size: 2.5rem;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--color-secondary);
+            border-radius: var(--radius-lg);
+        }
+        
+        .stat-content h3 {
+            margin: 0 0 var(--space-2) 0;
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+            font-weight: 500;
+        }
+        
+        .stat-value {
+            margin: 0;
+            font-size: var(--font-size-2xl);
+            font-weight: 700;
+            color: var(--color-text);
+        }
+        
+        /* 隐藏类 */
+        .hidden {
+            display: none !important;
+        }
+        
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <!-- ===== 完整功能实现脚本 ===== -->
+    <script type="text/babel">
+        // 🔧 Supabase 配置
+        const SUPABASE_URL = 'https://edfnhhthztskuuosuasw.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkZm5oaHRoenRza3V1b3N1YXN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5OTYxMTYsImV4cCI6MjA2NTU3MjExNn0.O3g2gjvsWagmWgmzoeJA8mPampvLYJr-KgqVwXsKoAo';
+        const ADMIN_PASSWORD = 'fengweipaiadmin';
+        const WHATSAPP_NUMBER = '60162327792';
+        const SELF_PICKUP_ADDRESS = '667, Jalan 24, Taman Perindustrian Ehsan Jaya, Kepong, 52100, Kuala Lumpur.';
+        
+        // 创建 Supabase 客户端
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // React Hooks
+        const { useState, useEffect, useCallback, useRef, useMemo } = React;
+        
+        // 🛠️ 工具函数
+        const buildOrderMessage = (order) => {
+            try {
+                let msg = `🛎️ *锋味派新订单 #${order.order_id}*\n\n`;
+                msg += `👤 *客户信息*\n📛 姓名: ${order.name}\n📱 电话: ${order.phone}\n🚚 取货方式: ${order.delivery_method === 'self-pickup' ? '自取' : 'Lalamove送货'}\n`;
+                if (order.delivery_method === 'self-pickup') {
+                    msg += `📍 自取地址: ${SELF_PICKUP_ADDRESS}\n`;
+                }
+                msg += `\n🛒 *订单明细*\n`;
+                (order.order_items || []).forEach(item => {
+                    const emoji = item.emoji || '🍽️';
+                    const typeLabel = item.is_unlimited ? ' (预购)' : ' (现货)';
+                    msg += `${emoji} ${item.product}${typeLabel} × ${item.quantity} = RM${(item.quantity * item.price).toFixed(2)}\n`;
+                });
+                msg += `\n💰 *总金额: RM${Number(order.total_amount).toFixed(2)}*\n`;
+                msg += `📝 *备注*: ${order.remarks || '无'}\n`;
+                msg += `📅 *下单时间*: ${new Date(order.created_at).toLocaleString('zh-CN')}`;
+                return msg;
+            } catch (error) {
+                console.error('构建订单消息失败:', error);
+                return '订单信息生成失败';
+            }
+        };
+        
+        const copyTextUniversal = async (text) => {
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                }
+            } catch (e) {}
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.top = '-2000px';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        };
+        
+        const generateOrderId = async () => {
+            const today = new Date();
+            const dateStr = today.getFullYear().toString() + 
+                            (today.getMonth() + 1).toString().padStart(2, '0') + 
+                            today.getDate().toString().padStart(2, '0');
+            
+            const { data: todayOrders } = await supabase
+                .from('orders')
+                .select('order_id')
+                .ilike('order_id', `FW${dateStr}%`)
+                .order('order_id', { ascending: false })
+                .limit(1);
+            
+            let sequenceNumber = 1;
+            if (todayOrders && todayOrders.length > 0) {
+                const lastOrderId = todayOrders[0].order_id;
+                const lastSequence = parseInt(lastOrderId.substring(10));
+                sequenceNumber = lastSequence + 1;
+            }
+            
+            return `FW${dateStr}${sequenceNumber.toString().padStart(3, '0')}`;
+        };
+        
+        // 🎨 UI 组件
+        const LoadingSpinner = ({ text }) => (
+            <div className="flex justify-center items-center p-6">
+                <div className="loading"></div>
+                {text && <span className="ml-3 text-gray-600">{text}</span>}
+            </div>
+        );
+        
+        const Toast = ({ message, type = 'success', onDismiss }) => {
+            useEffect(() => {
+                const timer = setTimeout(() => {
+                    if (onDismiss) onDismiss();
+                }, 3000);
+                return () => clearTimeout(timer);
+            }, [onDismiss]);
+            
+            return (
+                <div className={`toast ${type}`}>
+                    {message}
+                </div>
+            );
+        };
+        
+        // 🔐 登录组件 - 增强密码可见性切换
+        const LoginScreen = ({ onLogin }) => {
+            const [password, setPassword] = useState('');
+            const [showPassword, setShowPassword] = useState(false);
+            const [error, setError] = useState('');
+            const [loading, setLoading] = useState(false);
+            
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                if (!password.trim()) {
+                    setError('请输入密码');
+                    return;
+                }
+                
+                setLoading(true);
+                setError('');
+                
+                // 模拟验证延迟
+                setTimeout(() => {
+                    if (password === ADMIN_PASSWORD) {
+                        onLogin({ role: 'admin' });
+                    } else {
+                        setError('密码错误，请重试');
+                    }
+                    setLoading(false);
+                }, 500);
+            };
+            
+            const togglePasswordVisibility = () => {
+                setShowPassword(!showPassword);
+            };
+            
+            return (
+                <div className="login-screen">
+                    <div className="login-container">
+                        <div className="login-header">
+                            <h1>🍽️ 锋味派管理后台</h1>
+                            <p>请输入管理员密码访问系统</p>
+                        </div>
+                        <form className="login-form" onSubmit={handleSubmit}>
+                            <div className="form-group">
+                                <label className="form-label">管理员密码</label>
+                                <div className="password-input-container">
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        className="form-control"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        placeholder="输入管理员密码"
+                                        required
+                                        disabled={loading}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="password-toggle"
+                                        onClick={togglePasswordVisibility}
+                                        title={showPassword ? '隐藏密码' : '显示密码'}
+                                    >
+                                        <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {error && (
+                                <div className="error-message" style={{
+                                    background: 'rgba(192, 21, 47, 0.1)',
+                                    color: '#c0152f',
+                                    border: '1px solid rgba(192, 21, 47, 0.2)',
+                                    padding: '0.75rem',
+                                    borderRadius: '0.5rem',
+                                    marginBottom: '1rem',
+                                    fontSize: '0.875rem'
+                                }}>
+                                    <i className="fas fa-exclamation-triangle mr-2"></i>
+                                    {error}
+                                </div>
+                            )}
+                            <button 
+                                type="submit" 
+                                className={`btn btn--primary btn--full-width ${loading ? 'loading' : ''}`}
+                                disabled={loading}
+                                style={{ width: '100%', padding: '0.75rem' }}
+                            >
+                                {loading ? (
+                                    <>
+                                        <span className="loading mr-2"></span>
+                                        验证中...
+                                    </>
+                                ) : (
+                                    <>
+                                        <i className="fas fa-sign-in-alt mr-2"></i>
+                                        登录
+                                    </>
+                                )}
+                            </button>
+                        </form>
+                        <div style={{
+                            marginTop: '1.5rem',
+                            padding: '1rem',
+                            background: 'rgba(33, 128, 141, 0.1)',
+                            borderRadius: '0.5rem',
+                            fontSize: '0.875rem',
+                            color: '#626c71'
+                        }}>
+                            <p><strong>🚀 系统功能特色：</strong></p>
+                            <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem' }}>
+                                <li>📊 完整仪表盘 & 数据分析</li>
+                                <li>🛒 智能购物车 & 库存管理</li>
+                                <li>📱 会员系统 & 订单追踪</li>
+                                <li>📸 扫码拍照 & 支付凭证</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        // 🛒 客户端购物视图
+        const CustomerView = ({ onAdminClick }) => {
+            const [products, setProducts] = useState([]);
+            const [cart, setCart] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [activeCategory, setActiveCategory] = useState('🍽️全部商品');
+            const [isCartOpen, setIsCartOpen] = useState(false);
+            const [toast, setToast] = useState(null);
+            const [lastOrder, setLastOrder] = useState(null);
+            
+            // 分类配置
+            const categories = [
+                { id: 'all', name: '🍽️全部商品', emoji: '🍽️' },
+                { id: 'presale', name: '📋预售商品', emoji: '📋' },
+                { id: 'instock', name: '📦现货商品', emoji: '📦' },
+                { id: 'seasoning', name: '🧂调料', emoji: '🧂' },
+                { id: 'other', name: '🔖其他', emoji: '🔖' }
+            ];
+            
+            const showToast = (message, type = 'success') => {
+                setToast({ message, type });
+                setTimeout(() => setToast(null), 3000);
+            };
+            
+            // 获取产品列表
+            const fetchProducts = useCallback(async () => {
+                setLoading(true);
+                try {
+                    const { data, error } = await supabase
+                        .from('products')
+                        .select('*')
+                        .eq('is_published', true)
+                        .order('id');
+                    
+                    if (error) {
+                        throw error;
+                    }
+                    
+                    const formattedProducts = (data || []).map(p => ({
+                        ...p,
+                        stock: p.stock_quantity ?? 0,
+                        minStock: p.min_stock_threshold ?? 5,
+                        image: p.image_url || p.image || null
+                    }));
+                    
+                    setProducts(formattedProducts);
+                } catch (error) {
+                    console.error('加载商品失败:', error);
+                    showToast('加载商品失败: ' + error.message, 'error');
+                } finally {
+                    setLoading(false);
+                }
+            }, []);
+            
+            useEffect(() => {
+                fetchProducts();
+            }, [fetchProducts]);
+            
+            // 过滤产品
+            const filteredProducts = useMemo(() => {
+                if (activeCategory === '🍽️全部商品') return products;
+                if (activeCategory === '📋预售商品') return products.filter(p => p.is_unlimited);
+                if (activeCategory === '📦现货商品') return products.filter(p => !p.is_unlimited);
+                if (activeCategory === '🧂调料') return products.filter(p => p.category === '调料');
+                if (activeCategory === '🔖其他') return products.filter(p => p.category === '其他');
+                return products.filter(p => p.category === activeCategory);
+            }, [products, activeCategory]);
+            
+            // 添加到购物车
+            const addToCart = (product) => {
+                if (!product.is_unlimited && product.stock <= 0) {
+                    showToast('商品已售罄', 'error');
+                    return;
+                }
+                
+                const existingItem = cart.find(item => item.id === product.id);
+                if (existingItem) {
+                    if (!product.is_unlimited && existingItem.quantity >= product.stock) {
+                        showToast(`库存不足，仅剩${product.stock}件`, 'error');
+                        return;
+                    }
+                    setCart(cart.map(item =>
+                        item.id === product.id 
+                            ? { ...item, quantity: item.quantity + 1 }
+                            : item
+                    ));
+                } else {
+                    setCart([...cart, { ...product, quantity: 1 }]);
+                }
+                showToast('商品已添加到购物车', 'success');
+            };
+            
+            // 更新购物车数量
+            const updateCartQuantity = (productId, newQuantity) => {
+                if (newQuantity <= 0) {
+                    setCart(cart.filter(item => item.id !== productId));
+                    return;
+                }
+                
+                setCart(cart.map(item => {
+                    if (item.id === productId) {
+                        const maxQuantity = item.is_unlimited ? newQuantity : Math.min(newQuantity, item.stock);
+                        if (newQuantity > maxQuantity) {
+                            showToast(`数量已调整为库存上限：${maxQuantity}件`, 'warning');
+                            return { ...item, quantity: maxQuantity };
+                        }
+                        return { ...item, quantity: newQuantity };
+                    }
+                    return item;
+                }));
+            };
+            
+            // 移除购物车商品
+            const removeFromCart = (productId) => {
+                setCart(cart.filter(item => item.id !== productId));
+                showToast('商品已移除', 'success');
+            };
+            
+            // 计算购物车总计
+            const cartTotal = useMemo(() => {
+                return cart.reduce((total, item) => total + item.price * item.quantity, 0);
+            }, [cart]);
+            
+            const totalItems = useMemo(() => {
+                return cart.reduce((sum, item) => sum + item.quantity, 0);
+            }, [cart]);
+            
+            return (
+                <div className="min-h-screen bg-background">
+                    {/* 导航栏 */}
+                    <header className="navbar">
+                        <div className="container">
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-3xl">🍽️</span>
+                                    <h1 className="text-2xl font-bold">锋味派美食团购</h1>
+                                </div>
+                                <button 
+                                    onClick={onAdminClick}
+                                    className="text-white hover:text-gray-200 transition-colors"
+                                >
+                                    <div className="flex flex-col items-center">
+                                        <i className="fas fa-user-shield text-2xl"></i>
+                                        <span className="text-xs mt-1">管理</span>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+                    
+                    {/* 分类导航 */}
+                    {window.SYSTEM_CONFIG.ENABLE_CATEGORY_NAVIGATION && (
+                        <nav className="category-nav">
+                            <div className="container">
+                                <div className="category-buttons">
+                                    {categories.map(category => (
+                                        <button
+                                            key={category.id}
+                                            onClick={() => setActiveCategory(category.name)}
+                                            className={`category-btn ${activeCategory === category.name ? 'active' : ''}`}
+                                        >
+                                            {category.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </nav>
+                    )}
+                    
+                    {/* 主要内容 */}
+                    <main className="container" style={{ paddingTop: '2rem', paddingBottom: '6rem' }}>
+                        {loading ? (
+                            <LoadingSpinner text="加载商品中..." />
+                        ) : (
+                            <div className="products-grid">
+                                {filteredProducts.length === 0 ? (
+                                    <div className="empty-state">
+                                        <div className="empty-state-icon">📦</div>
+                                        <p>该分类下暂无商品</p>
+                                    </div>
+                                ) : (
+                                    filteredProducts.map(product => (
+                                        <ProductCard 
+                                            key={product.id} 
+                                            product={product} 
+                                            onAddToCart={addToCart} 
+                                        />
+                                    ))
+                                )}
+                            </div>
+                        )}
+                    </main>
+                    
+                    {/* 浮动购物车按钮 */}
+                    {window.SYSTEM_CONFIG.ENABLE_SHOPPING_CART && cart.length > 0 && (
+                        <div className="floating-cart">
+                            <button 
+                                className="floating-cart-btn"
+                                onClick={() => setIsCartOpen(true)}
+                            >
+                                <div className="relative">
+                                    <i className="fas fa-shopping-cart text-2xl"></i>
+                                    <span className="cart-badge">{totalItems}</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="font-bold text-lg">RM{cartTotal.toFixed(2)}</span>
+                                    <span className="text-xs opacity-90">{totalItems} 件商品</span>
+                                </div>
+                            </button>
+                        </div>
+                    )}
+                    
+                    {/* 购物车侧边栏 */}
+                    {window.SYSTEM_CONFIG.ENABLE_SHOPPING_CART && (
+                        <>
+                            <div 
+                                className={`cart-overlay ${isCartOpen ? 'active' : ''}`}
+                                onClick={() => setIsCartOpen(false)}
+                            />
+                            <CartSidebar
+                                isOpen={isCartOpen}
+                                cart={cart}
+                                updateQuantity={updateCartQuantity}
+                                removeFromCart={removeFromCart}
+                                totalPrice={cartTotal}
+                                totalItems={totalItems}
+                                onClose={() => setIsCartOpen(false)}
+                                showToast={showToast}
+                                setLastOrder={setLastOrder}
+                                setCart={setCart}
+                                refreshProducts={fetchProducts}
+                            />
+                        </>
+                    )}
+                    
+                    {/* 订单成功模态框 */}
+                    {lastOrder && (
+                        <OrderSuccessModal
+                            order={lastOrder}
+                            onNewOrder={() => {
+                                setLastOrder(null);
+                                fetchProducts();
+                            }}
+                        />
+                    )}
+                    
+                    {/* Toast 通知 */}
+                    {toast && (
+                        <Toast {...toast} onDismiss={() => setToast(null)} />
+                    )}
+                </div>
+            );
+        };
+        
+        // 📦 产品卡片组件
+        const ProductCard = ({ product, onAddToCart }) => {
+            const isOutOfStock = !product.is_unlimited && product.stock === 0;
+            const isLowStock = !product.is_unlimited && product.stock > 0 && product.stock <= product.minStock;
+            
+            return (
+                <div className={`product-card ${isOutOfStock ? 'opacity-60' : ''}`}>
+                    {/* 产品徽章 */}
+                    {product.is_unlimited && (
+                        <div className="product-badge product-badge--presale">
+                            <i className="fas fa-infinity mr-1"></i>预购
+                        </div>
+                    )}
+                    {isLowStock && !isOutOfStock && (
+                        <div className="product-badge product-badge--low-stock">
+                            <i className="fas fa-exclamation-triangle mr-1"></i>低库存
+                        </div>
+                    )}
+                    
+                    {/* 产品图片 */}
+                    <div className="relative">
+                        {product.image ? (
+                            <img 
+                                src={product.image} 
+                                alt={product.name}
+                                className="product-image"
+                                onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    e.target.nextSibling.style.display = 'flex';
+                                }}
+                            />
+                        ) : null}
+                        <div 
+                            className="product-image flex items-center justify-center text-6xl"
+                            style={{ display: product.image ? 'none' : 'flex' }}
+                        >
+                            {product.emoji || '🍽️'}
+                        </div>
+                        
+                        {/* 缺货覆盖层 */}
+                        {isOutOfStock && (
+                            <div 
+                                className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center"
+                                style={{ 
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    background: 'rgba(0, 0, 0, 0.6)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}
+                            >
+                                <div className="text-center text-white">
+                                    <i className="fas fa-times-circle text-3xl mb-2"></i>
+                                    <div className="font-bold">已售完</div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* 产品信息 */}
+                    <div className="product-info">
+                        <h3 className="product-name">{product.name}</h3>
+                        
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="product-price">RM{Number(product.price).toFixed(2)}</span>
+                            <span className={`stock-badge ${
+                                product.is_unlimited ? 'stock-badge--in-stock' : 
+                                isOutOfStock ? 'stock-badge--out-of-stock' :
+                                isLowStock ? 'stock-badge--low-stock' : 'stock-badge--in-stock'
+                            }`}>
+                                {product.is_unlimited ? '充足' : `库存: ${product.stock}`}
+                            </span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center">
+                            <div className="text-sm text-gray-600">
+                                {product.is_unlimited ? '预购商品' : '现货商品'}
+                                {product.category && (
+                                    <span className="ml-2 px-2 py-1 bg-gray-100 rounded text-xs">
+                                        {product.category}
+                                    </span>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => onAddToCart(product)}
+                                disabled={isOutOfStock}
+                                className={`btn ${isOutOfStock ? 'btn--secondary' : 'btn--primary'}`}
+                                style={{ opacity: isOutOfStock ? 0.5 : 1 }}
+                            >
+                                <i className={`fas ${isOutOfStock ? 'fa-times' : 'fa-cart-plus'} mr-1`}></i>
+                                {isOutOfStock ? '售罄' : '添加'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        // 🛒 购物车侧边栏
+        const CartSidebar = ({ 
+            isOpen, cart, updateQuantity, removeFromCart, 
+            totalPrice, totalItems, onClose, showToast,
+            setLastOrder, setCart, refreshProducts 
+        }) => {
+            const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+            
+            const handleCheckout = () => {
+                if (cart.length === 0) {
+                    showToast('购物车为空', 'error');
+                    return;
+                }
+                onClose();
+                setIsCheckoutOpen(true);
+            };
+            
+            return (
+                <>
+                    <div className={`cart-sidebar ${isOpen ? 'open' : ''}`}>
+                        {/* 头部 */}
+                        <header className="p-5 border-b border-border flex justify-between items-center">
+                            <h2 className="text-xl font-bold">购物车</h2>
+                            <button 
+                                onClick={onClose}
+                                className="text-gray-500 hover:text-gray-800 p-2"
+                            >
+                                <i className="fas fa-times text-2xl"></i>
+                            </button>
+                        </header>
+                        
+                        {/* 内容 */}
+                        <div className="flex-1 overflow-y-auto p-5">
+                            {cart.length === 0 ? (
+                                <div className="empty-state">
+                                    <div className="empty-state-icon">🛒</div>
+                                    <p>购物车为空</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {cart.map(item => (
+                                        <CartItem 
+                                            key={item.id}
+                                            item={item}
+                                            updateQuantity={updateQuantity}
+                                            removeFromCart={removeFromCart}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        
+                        {/* 底部 */}
+                        {cart.length > 0 && (
+                            <footer className="border-t border-border p-5">
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-gray-600">商品总数:</span>
+                                        <span className="font-medium">{totalItems} 件</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-lg">
+                                        <span className="font-medium">总计:</span>
+                                        <span className="text-2xl font-bold text-primary">
+                                            RM{totalPrice.toFixed(2)}
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={handleCheckout}
+                                        className="btn btn--primary"
+                                        style={{ width: '100%', padding: '1rem' }}
+                                    >
+                                        <i className="fas fa-credit-card mr-2"></i>
+                                        立即结账
+                                    </button>
+                                </div>
+                            </footer>
+                        )}
+                    </div>
+                    
+                    {/* 结账模态框 */}
+                    {isCheckoutOpen && (
+                        <CheckoutModal
+                            cart={cart}
+                            total={totalPrice}
+                            onClose={() => setIsCheckoutOpen(false)}
+                            showToast={showToast}
+                            setLastOrder={setLastOrder}
+                            setCart={setCart}
+                            refreshProducts={refreshProducts}
+                        />
+                    )}
+                </>
+            );
+        };
+        
+        // 🛒 购物车商品项
+        const CartItem = ({ item, updateQuantity, removeFromCart }) => {
+            return (
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-border">
+                    <div className="flex items-center gap-4">
+                        <div className="text-3xl flex-shrink-0">
+                            {item.emoji || '🍽️'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-gray-800 truncate">{item.name}</h3>
+                            <div className="flex items-center gap-2">
+                                <span className="text-primary font-bold">
+                                    RM{Number(item.price).toFixed(2)}
+                                </span>
+                                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                    {item.is_unlimited ? '预购' : '现货'}
+                                </span>
+                                {!item.is_unlimited && (
+                                    <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                        库存: {item.stock}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                    className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600"
+                                >
+                                    <i className="fas fa-minus text-xs"></i>
+                                </button>
+                                <span className="w-8 text-center font-medium">{item.quantity}</span>
+                                <button
+                                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                    disabled={!item.is_unlimited && item.quantity >= item.stock}
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${
+                                        !item.is_unlimited && item.quantity >= item.stock
+                                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                            : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+                                    }`}
+                                >
+                                    <i className="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <button
+                                onClick={() => removeFromCart(item.id)}
+                                className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                            >
+                                <i className="fas fa-trash mr-1"></i>删除
+                            </button>
+                        </div>
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-gray-100">
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-500">小计</span>
+                            <span className="font-bold text-gray-800">
+                                RM{(item.quantity * item.price).toFixed(2)}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        // 💳 结账模态框 (简化版本，完整版本将在下一步添加)
+        const CheckoutModal = ({ cart, total, onClose, showToast, setLastOrder, setCart, refreshProducts }) => {
+            const [formData, setFormData] = useState({
+                name: '',
+                phone: '',
+                delivery: '',
+                remarks: '',
+                paymentMethod: ''
+            });
+            const [loading, setLoading] = useState(false);
+            
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                
+                try {
+                    // 生成订单
+                    const orderId = await generateOrderId();
+                    const orderData = {
+                        order_id: orderId,
+                        name: formData.name,
+                        phone: formData.phone,
+                        delivery_method: formData.delivery,
+                        remarks: formData.remarks,
+                        payment_method: formData.paymentMethod,
+                        total_amount: total,
+                        status: 'pending',
+                        order_items: cart.map(item => ({
+                            product: item.name,
+                            quantity: item.quantity,
+                            price: item.price,
+                            emoji: item.emoji,
+                            is_unlimited: item.is_unlimited
+                        })),
+                        created_at: new Date().toISOString()
+                    };
+                    
+                    const { data: order, error } = await supabase
+                        .from('orders')
+                        .insert([orderData])
+                        .select()
+                        .single();
+                    
+                    if (error) throw error;
+                    
+                    // 更新库存
+                    for (const item of cart) {
+                        if (!item.is_unlimited) {
+                            const newStock = Math.max(0, item.stock - item.quantity);
+                            await supabase
+                                .from('products')
+                                .update({ stock_quantity: newStock })
+                                .eq('id', item.id);
+                        }
+                    }
+                    
+                    showToast('订单提交成功！', 'success');
+                    setLastOrder(order);
+                    setCart([]);
+                    onClose();
+                    refreshProducts();
+                } catch (error) {
+                    console.error('订单提交失败:', error);
+                    showToast('订单提交失败: ' + error.message, 'error');
+                } finally {
+                    setLoading(false);
+                }
+            };
+            
+            return (
+                <div className="modal active">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h2 className="text-xl font-bold">结账</h2>
+                            <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
+                                <i className="fas fa-times text-xl"></i>
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div className="form-group">
+                                    <label className="form-label">姓名 *</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                        required
+                                        placeholder="请输入您的姓名"
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">电话号码 *</label>
+                                    <input
+                                        type="tel"
+                                        className="form-control"
+                                        value={formData.phone}
+                                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                                        required
+                                        placeholder="例如: 0123456789"
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">取货方式 *</label>
+                                    <select
+                                        className="form-control"
+                                        value={formData.delivery}
+                                        onChange={(e) => setFormData({...formData, delivery: e.target.value})}
+                                        required
+                                    >
+                                        <option value="">请选择取货方式</option>
+                                        <option value="self-pickup">自取</option>
+                                        <option value="lalamove">Lalamove送货</option>
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">付款方式 *</label>
+                                    <select
+                                        className="form-control"
+                                        value={formData.paymentMethod}
+                                        onChange={(e) => setFormData({...formData, paymentMethod: e.target.value})}
+                                        required
+                                    >
+                                        <option value="">请选择付款方式</option>
+                                        <option value="Maybank QR">Maybank QR</option>
+                                        <option value="TNG eWallet">TNG eWallet</option>
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">备注</label>
+                                    <textarea
+                                        className="form-control"
+                                        value={formData.remarks}
+                                        onChange={(e) => setFormData({...formData, remarks: e.target.value})}
+                                        rows="3"
+                                        placeholder="如有特殊要求，请在此说明"
+                                    />
+                                </div>
+                            </form>
+                        </div>
+                        <div className="modal-footer">
+                            <div className="w-full">
+                                <div className="flex justify-between items-center mb-4">
+                                    <span className="text-lg font-medium">订单总计:</span>
+                                    <span className="text-2xl font-bold text-primary">
+                                        RM{total.toFixed(2)}
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={handleSubmit}
+                                    disabled={loading}
+                                    className="btn btn--primary"
+                                    style={{ width: '100%', padding: '0.75rem' }}
+                                >
+                                    {loading ? (
+                                        <>
+                                            <span className="loading mr-2"></span>
+                                            提交中...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <i className="fas fa-check mr-2"></i>
+                                            确认订单
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        // 🎉 订单成功模态框
+        const OrderSuccessModal = ({ order, onNewOrder }) => {
+            const whatsappMsg = buildOrderMessage(order);
+            const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(whatsappMsg)}`;
+            
+            const handleCopy = async () => {
+                const success = await copyTextUniversal(whatsappMsg);
+                alert(success ? '订单信息已复制到剪贴板' : '复制失败，请长按选择手动复制');
+            };
+            
+            const handleSendWhatsApp = () => {
+                window.location.href = whatsappUrl;
+                setTimeout(() => onNewOrder(), 1000);
+            };
+            
+            return (
+                <div className="modal active">
+                    <div className="modal-content">
+                        <div className="modal-body text-center">
+                            <div className="text-6xl mb-4">🎉</div>
+                            <h2 className="text-2xl font-bold mb-4 text-success">订单提交成功!</h2>
+                            <div className="bg-gray-50 p-4 rounded-lg mb-4 text-left text-sm max-h-40 overflow-y-auto">
+                                <pre className="whitespace-pre-wrap text-xs">{whatsappMsg}</pre>
+                            </div>
+                            <p className="text-gray-600 mb-4">
+                                请点击"发送到WhatsApp"将订单信息发送给我们，或先"复制订单"手动发送。
+                            </p>
+                            <div className="space-y-3">
+                                <button 
+                                    onClick={handleSendWhatsApp}
+                                    className="btn btn--success"
+                                    style={{ width: '100%', padding: '0.75rem' }}
+                                >
+                                    <i className="fab fa-whatsapp mr-2"></i>
+                                    发送到WhatsApp
+                                </button>
+                                <button 
+                                    onClick={handleCopy}
+                                    className="btn btn--secondary"
+                                    style={{ width: '100%', padding: '0.75rem' }}
+                                >
+                                    <i className="fas fa-copy mr-2"></i>
+                                    复制订单信息
+                                </button>
+                                <button 
+                                    onClick={onNewOrder}
+                                    className="btn btn--primary"
+                                    style={{ width: '100%', padding: '0.75rem' }}
+                                >
+                                    <i className="fas fa-shopping-cart mr-2"></i>
+                                    继续购物
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        // 🎯 主应用组件
+        const App = () => {
+            const [currentView, setCurrentView] = useState('customer');
+            const [user, setUser] = useState(null);
+            
+            const handleLogin = (userData) => {
+                setUser(userData);
+                setCurrentView('admin');
+            };
+            
+            const handleLogout = () => {
+                setUser(null);
+                setCurrentView('customer');
+            };
+            
+            const handleAdminClick = () => {
+                setCurrentView('login');
+            };
+            
+            // 根据当前视图渲染对应组件
+            switch (currentView) {
+                case 'login':
+                    return <LoginScreen onLogin={handleLogin} />;
+                case 'admin':
+                    return <AdminLayout user={user} onLogout={handleLogout} />;
+                case 'customer':
+                default:
+                    return <CustomerView onAdminClick={handleAdminClick} />;
+            }
+        };
+        
+        // 🔧 管理后台布局 (简化版本，完整版本将在下一步添加)
+        const AdminLayout = ({ user, onLogout }) => {
+            return (
+                <div className="text-center p-8">
+                    <h1 className="text-3xl font-bold text-primary mb-4">
+                        🔧 管理后台
+                    </h1>
+                    <p className="text-text-secondary mb-6">
+                        欢迎，{user?.role || '管理员'}！完整后台功能正在构建中...
+                    </p>
+                    <button 
+                        className="btn btn--secondary"
+                        onClick={onLogout}
+                    >
+                        <i className="fas fa-sign-out-alt mr-2"></i>
+                        退出登录
+                    </button>
+                </div>
+            );
+        };
+        
+        // 渲染应用
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</body>
+</html>

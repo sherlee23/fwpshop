@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://edfnhhthztskuuosuasw.supabase.co/storage/v1/object/public/product-photos/icon3.jpg">
+    <title>锋味派美食团购系统</title>
+    
+    <style>
+        /* 全局重置和基础样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8fafc;
+        }
+        
+        /* 容器和布局 */
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        .justify-between { justify-content: space-between; }
+        .grid { display: grid; }
+        .grid-cols-1 { grid-template-columns: repeat(1, 1fr); }
+        .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+        .gap-4 { gap: 1rem; }
+        .gap-6 { gap: 1.5rem; }
+        
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .md\\:grid-cols-2 { grid-template-columns: repeat(1, 1fr); }
+            .md\\:grid-cols-3 { grid-template-columns: repeat(1, 1fr); }
+            .md\\:flex-row { flex-direction: column; }
+        }
+        
+        /* 间距 */
+        .p-4 { padding: 1rem; }
+        .p-6 { padding: 1.5rem; }
+        .m-4 { margin: 1rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mb-6 { margin-bottom: 1.5rem; }
+        .mt-4 { margin-top: 1rem; }
+        .mt-6 { margin-top: 1.5rem; }
+        
+        /* 文本样式 */
+        .text-center { text-align: center; }
+        .text-xl { font-size: 1.25rem; }
+        .text-2xl { font-size: 1.5rem; }
+        .text-3xl { font-size: 1.875rem; }
+        .font-bold { font-weight: bold; }
+        .text-white { color: white; }
+        .text-gray-600 { color: #6b7280; }
+        .text-gray-900 { color: #111827; }
+        .text-red-600 { color: #dc2626; }
+        .text-green-600 { color: #16a34a; }
+        .text-blue-600 { color: #2563eb; }
+        
+        /* 背景色 */
+        .bg-white { background-color: white; }
+        .bg-red-600 { background-color: #dc2626; }
+        .bg-green-600 { background-color: #16a34a; }
+        .bg-blue-600 { background-color: #2563eb; }
+        .bg-gray-100 { background-color: #f3f4f6; }
+        .bg-gray-800 { background-color: #1f2937; }
+        
+        /* 按钮 */
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary { background-color: #dc2626; color: white; }
+        .btn-success { background-color: #16a34a; color: white; }
+        .btn-secondary { background-color: #6b7280; color: white; }
+        
+        /* 卡片 */
+        .card {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .card:hover { box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        
+        /* 表单 */
+        .form-input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 1rem;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+        }
+        
+        /* 侧边栏 */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100vh;
+            background: white;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            transition: right 0.3s ease;
+            z-index: 1000;
+        }
+        .sidebar.open { right: 0; }
+        
+        /* 覆盖层 */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* 模态框 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 0.5rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        /* 导航栏 */
+        .navbar {
+            background: #dc2626;
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* 商品网格 */
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            padding: 2rem 0;
+        }
+        
+        /* 商品卡片 */
+        .product-card {
+            background: white;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .product-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .product-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        
+        .product-info {
+            padding: 1rem;
+        }
+        
+        /* 购物车计数 */
+        .cart-count {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #dc2626;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* 加载动画 */
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #dc2626;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 工具类 */
+        .relative { position: relative; }
+        .absolute { position: absolute; }
+        .fixed { position: fixed; }
+        .w-full { width: 100%; }
+        .h-full { height: 100%; }
+        .min-h-screen { min-height: 100vh; }
+        .hidden { display: none; }
+        .block { display: block; }
+        .inline-block { display: inline-block; }
+        .cursor-pointer { cursor: pointer; }
+        .select-none { user-select: none; }
+        
+        /* 响应式隐藏/显示 */
+        @media (max-width: 768px) {
+            .md\\:hidden { display: none; }
+            .md\\:block { display: block; }
+            .sidebar { width: 100%; right: -100%; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <!-- 加载指示器 -->
+        <div id="loading" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
+            <div class="loading-spinner mb-4"></div>
+            <div>正在加载锋味派美食团购系统...</div>
+        </div>
+    </div>
+
+    <script>
+        // 应用配置
+        window.AppConfig = {
+            SUPABASE_URL: 'https://edfnhhthztskuuosuasw.supabase.co',
+            SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkZm5oaHRoenRza3V1b3N1YXN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5OTYxMTYsImV4cCI6MjA2NTU3MjExNn0.O3g2gjvsWagmWgmzoeJA8mPampvLYJr-KgqVwXsKoAo',
+            WHATSAPP_NUMBER: '60162327792',
+            ADMIN_PASSWORD: 'fengweipaiadmin',
+            SELF_PICKUP_ADDRESS: '667, Jalan 24, Taman Perindustrian Ehsan Jaya, Kepong, 52100, Kuala Lumpur.',
+            PRODUCT_IMAGE_BASE_URL: 'https://edfnhhthztskuuosuasw.supabase.co/storage/v1/object/public/product-photos/',
+            
+            // 功能开关
+            MEMBER_FEATURES: {
+                ENABLED: true,
+                POINTS_SYSTEM: true,
+                LOGIN_REQUIRED: false,
+                ORDER_HISTORY: true,
+                AUTO_MERGE_ORDERS: true,
+                AUTO_CREATE_MEMBER: true
+            }
+        };
+
+        // 简化版 React-like 组件系统
+        class Component {
+            constructor(props = {}) {
+                this.props = props;
+                this.state = {};
+                this.element = null;
+            }
+            
+            setState(newState) {
+                Object.assign(this.state, newState);
+                this.render();
+            }
+            
+            createElement(tag, props = {}, ...children) {
+                const element = document.createElement(tag);
+                
+                // 设置属性
+                Object.entries(props).forEach(([key, value]) => {
+                    if (key === 'className') {
+                        element.className = value;
+                    } else if (key.startsWith('on') && typeof value === 'function') {
+                        element.addEventListener(key.slice(2).toLowerCase(), value);
+                    } else {
+                        element.setAttribute(key, value);
+                    }
+                });
+                
+                // 添加子元素
+                children.forEach(child => {
+                    if (typeof child === 'string') {
+                        element.appendChild(document.createTextNode(child));
+                    } else if (child) {
+                        element.appendChild(child);
+                    }
+                });
+                
+                return element;
+            }
+            
+            render() {
+                // 子类实现
+                return this.createElement('div', {}, 'Component');
+            }
+        }
+
+        // 简化版 Supabase 客户端
+        class SimpleSupabaseClient {
+            constructor(url, key) {
+                this.url = url;
+                this.key = key;
+            }
+            
+            from(table) {
+                return new QueryBuilder(this, table);
+            }
+            
+            async request(method, path, body = null) {
+                const url = `${this.url}/rest/v1/${path}`;
+                const headers = {
+                    'apikey': this.key,
+                    'Authorization': `Bearer ${this.key}`,
+                    'Content-Type': 'application/json'
+                };
+                
+                try {
+                    const response = await fetch(url, {
+                        method,
+                        headers,
+                        body: body ? JSON.stringify(body) : null
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    return { data, error: null };
+                } catch (error) {
+                    return { data: null, error };
+                }
+            }
+        }
+
+        class QueryBuilder {
+            constructor(client, table) {
+                this.client = client;
+                this.table = table;
+                this.selectFields = '*';
+                this.filters = [];
+                this.orderBy = null;
+                this.limitCount = null;
+            }
+            
+            select(fields = '*') {
+                this.selectFields = fields;
+                return this;
+            }
+            
+            eq(column, value) {
+                this.filters.push(`${column}=eq.${encodeURIComponent(value)}`);
+                return this;
+            }
+            
+            order(column, options = {}) {
+                const direction = options.ascending !== false ? 'asc' : 'desc';
+                this.orderBy = `${column}.${direction}`;
+                return this;
+            }
+            
+            limit(count) {
+                this.limitCount = count;
+                return this;
+            }
+            
+            async execute() {
+                let path = `${this.table}?select=${this.selectFields}`;
+                
+                if (this.filters.length > 0) {
+                    path += '&' + this.filters.join('&');
+                }
+                
+                if (this.orderBy) {
+                    path += `&order=${this.orderBy}`;
+                }
+                
+                if (this.limitCount) {
+                    path += `&limit=${this.limitCount}`;
+                }
+                
+                return await this.client.request('GET', path);
+            }
+            
+            async insert(data) {
+                return await this.client.request('POST', this.table, data);
+            }
+            
+            async update(data) {
+                let path = this.table;
+                if (this.filters.length > 0) {
+                    path += '?' + this.filters.join('&');
+                }
+                return await this.client.request('PATCH', path, data);
+            }
+            
+            async delete() {
+                let path = this.table;
+                if (this.filters.length > 0) {
+                    path += '?' + this.filters.join('&');
+                }
+                return await this.client.request('DELETE', path);
+            }
+        }
+
+        // 全局状态管理
+        class AppState {
+            constructor() {
+                this.currentView = 'customer';
+                this.products = [];
+                this.cart = [];
+                this.user = null;
+                this.loading = false;
+                this.listeners = [];
+            }
+            
+            setState(newState) {
+                Object.assign(this, newState);
+                this.notifyListeners();
+            }
+            
+            subscribe(listener) {
+                this.listeners.push(listener);
+                return () => {
+                    this.listeners = this.listeners.filter(l => l !== listener);
+                };
+            }
+            
+            notifyListeners() {
+                this.listeners.forEach(listener => listener(this));
+            }
+            
+            addToCart(product) {
+                const existingItem = this.cart.find(item => item.id === product.id);
+                if (existingItem) {
+                    existingItem.quantity += 1;
+                } else {
+                    this.cart.push({ ...product, quantity: 1 });
+                }
+                this.notifyListeners();
+            }
+            
+            removeFromCart(productId) {
+                this.cart = this.cart.filter(item => item.id !== productId);
+                this.notifyListeners();
+            }
+            
+            updateCartQuantity(productId, quantity) {
+                const item = this.cart.find(item => item.id === productId);
+                if (item) {
+                    if (quantity <= 0) {
+                        this.removeFromCart(productId);
+                    } else {
+                        item.quantity = quantity;
+                        this.notifyListeners();
+                    }
+                }
+            }
+            
+            getCartTotal() {
+                return this.cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+            }
+            
+            getCartItemCount() {
+                return this.cart.reduce((total, item) => total + item.quantity, 0);
+            }
+        }
+
+        // 初始化全局状态和 Supabase 客户端
+        const appState = new AppState();
+        const supabase = new SimpleSupabaseClient(
+            AppConfig.SUPABASE_URL,
+            AppConfig.SUPABASE_ANON_KEY
+        );
+
+        // 客户界面组件
+        class CustomerPage extends Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    searchTerm: '',
+                    selectedCategory: 'all',
+                    showCart: false
+                };
+            }
+            
+            async componentDidMount() {
+                await this.loadProducts();
+            }
+            
+            async loadProducts() {
+                appState.setState({ loading: true });
+                try {
+                    const { data, error } = await supabase.from('products').select().execute();
+                    if (error) throw error;
+                    appState.setState({ products: data || [], loading: false });
+                } catch (error) {
+                    console.error('加载商品失败:', error);
+                    appState.setState({ loading: false });
+                }
+            }
+            
+            getFilteredProducts() {
+                return appState.products.filter(product => {
+                    const matchesSearch = product.name?.toLowerCase().includes(this.state.searchTerm.toLowerCase());
+                    const matchesCategory = this.state.selectedCategory === 'all' || product.category === this.state.selectedCategory;
+                    return matchesSearch && matchesCategory;
+                });
+            }
+            
+            render() {
+                const container = this.createElement('div', { className: 'min-h-screen bg-gray-100' });
+                
+                // 导航栏
+                const navbar = this.createElement('nav', { className: 'navbar' });
+                const navContainer = this.createElement('div', { className: 'container flex justify-between items-center' });
+                
+                const title = this.createElement('h1', { className: 'text-2xl font-bold' }, '🍽️ 锋味派美食团购');
+                
+                const cartButton = this.createElement('button', {
+                    className: 'btn btn-secondary relative',
+                    onclick: () => this.setState({ showCart: true })
+                });
+                cartButton.innerHTML = `🛒 购物车`;
+                if (appState.getCartItemCount() > 0) {
+                    const badge = this.createElement('span', { className: 'cart-count' }, appState.getCartItemCount().toString());
+                    cartButton.appendChild(badge);
+                }
+                
+                navContainer.appendChild(title);
+                navContainer.appendChild(cartButton);
+                navbar.appendChild(navContainer);
+                
+                // 搜索和筛选
+                const searchSection = this.createElement('div', { className: 'bg-white p-4 shadow-sm' });
+                const searchContainer = this.createElement('div', { className: 'container' });
+                const searchForm = this.createElement('div', { className: 'flex gap-4' });
+                
+                const searchInput = this.createElement('input', {
+                    type: 'text',
+                    placeholder: '搜索商品...',
+                    className: 'form-input flex-1',
+                    value: this.state.searchTerm,
+                    oninput: (e) => this.setState({ searchTerm: e.target.value })
+                });
+                
+                const categorySelect = this.createElement('select', {
+                    className: 'form-input',
+                    value: this.state.selectedCategory,
+                    onchange: (e) => this.setState({ selectedCategory: e.target.value })
+                });
+                
+                const categories = ['all', '预售商品', '现货商品', '调料', '其他'];
+                categories.forEach(cat => {
+                    const option = this.createElement('option', { value: cat }, cat === 'all' ? '全部分类' : cat);
+                    categorySelect.appendChild(option);
+                });
+                
+                searchForm.appendChild(searchInput);
+                searchForm.appendChild(categorySelect);
+                searchContainer.appendChild(searchForm);
+                searchSection.appendChild(searchContainer);
+                
+                // 商品网格
+                const productsSection = this.createElement('div', { className: 'container' });
+                const filteredProducts = this.getFilteredProducts();
+                
+                if (appState.loading) {
+                    const loadingDiv = this.createElement('div', { className: 'text-center p-8' });
+                    const spinner = this.createElement('div', { className: 'loading-spinner mx-auto mb-4' });
+                    loadingDiv.appendChild(spinner);
+                    loadingDiv.appendChild(document.createTextNode('正在加载商品...'));
+                    productsSection.appendChild(loadingDiv);
+                } else if (filteredProducts.length === 0) {
+                    const emptyDiv = this.createElement('div', { className: 'text-center p-8 text-gray-600' });
+                    emptyDiv.textContent = '暂无商品';
+                    productsSection.appendChild(emptyDiv);
+                } else {
+                    const grid = this.createElement('div', { className: 'product-grid' });
+                    filteredProducts.forEach(product => {
+                        const card = this.createProductCard(product);
+                        grid.appendChild(card);
+                    });
+                    productsSection.appendChild(grid);
+                }
+                
+                container.appendChild(navbar);
+                container.appendChild(searchSection);
+                container.appendChild(productsSection);
+                
+                // 购物车侧边栏
+                if (this.state.showCart) {
+                    const cartSidebar = this.createCartSidebar();
+                    container.appendChild(cartSidebar);
+                }
+                
+                return container;
+            }
+            
+            createProductCard(product) {
+                const card = this.createElement('div', { className: 'product-card' });
+                
+                // 商品图片
+                const img = this.createElement('img', {
+                    src: AppConfig.PRODUCT_IMAGE_BASE_URL + (product.image || 'placeholder.jpg'),
+                    alt: product.name,
+                    className: 'product-image',
+                    onerror: (e) => {
+                        e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDI4MCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyODAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNDAgMTAwQzE0MCA5NS41ODE3IDE0My41ODIgOTIgMTQ4IDkySDI2OEMyNzIuNDE4IDkyIDI3NiA5NS41ODE3IDI3NiAxMDBWMTUyQzI3NiAxNTYuNDE4IDI3Mi40MTggMTYwIDI2OCAxNjBIMTQ4QzE0My41ODIgMTYwIDE0MCAxNTYuNDE4IDE0MCAxNTJWMTAwWiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K';
+                    }
+                });
+                
+                // 商品信息
+                const info = this.createElement('div', { className: 'product-info' });
+                
+                const name = this.createElement('h3', { className: 'font-bold mb-2' }, product.name);
+                const price = this.createElement('p', { className: 'text-red-600 font-bold text-xl mb-2' }, `RM ${product.price}`);
+                
+                let description = '';
+                if (product.category) description += `分类: ${product.category} `;
+                if (product.stock_quantity !== undefined) description += `库存: ${product.stock_quantity}`;
+                
+                const desc = this.createElement('p', { className: 'text-gray-600 text-sm mb-4' }, description);
+                
+                const addButton = this.createElement('button', {
+                    className: 'btn btn-primary w-full',
+                    onclick: () => {
+                        appState.addToCart(product);
+                        this.render(); // 重新渲染以更新购物车计数
+                    }
+                }, '加入购物车');
+                
+                info.appendChild(name);
+                info.appendChild(price);
+                info.appendChild(desc);
+                info.appendChild(addButton);
+                
+                card.appendChild(img);
+                card.appendChild(info);
+                
+                return card;
+            }
+            
+            createCartSidebar() {
+                const overlay = this.createElement('div', { 
+                    className: 'overlay active',
+                    onclick: () => this.setState({ showCart: false })
+                });
+                
+                const sidebar = this.createElement('div', { className: 'sidebar open' });
+                
+                // 标题栏
+                const header = this.createElement('div', { className: 'p-4 bg-red-600 text-white flex justify-between items-center' });
+                const title = this.createElement('h2', { className: 'text-xl font-bold' }, '购物车');
+                const closeBtn = this.createElement('button', {
+                    onclick: () => this.setState({ showCart: false }),
+                    className: 'text-2xl'
+                }, '×');
+                header.appendChild(title);
+                header.appendChild(closeBtn);
+                
+                // 购物车内容
+                const content = this.createElement('div', { className: 'p-4 flex-1 overflow-y-auto' });
+                
+                if (appState.cart.length === 0) {
+                    const empty = this.createElement('div', { className: 'text-center text-gray-600 mt-8' }, '购物车为空');
+                    content.appendChild(empty);
+                } else {
+                    appState.cart.forEach(item => {
+                        const itemDiv = this.createElement('div', { className: 'flex items-center gap-4 mb-4 p-4 bg-gray-100 rounded' });
+                        
+                        const info = this.createElement('div', { className: 'flex-1' });
+                        const name = this.createElement('div', { className: 'font-bold' }, item.name);
+                        const price = this.createElement('div', { className: 'text-red-600' }, `RM ${item.price}`);
+                        info.appendChild(name);
+                        info.appendChild(price);
+                        
+                        const controls = this.createElement('div', { className: 'flex items-center gap-2' });
+                        
+                        const minusBtn = this.createElement('button', {
+                            className: 'btn btn-secondary',
+                            onclick: () => {
+                                appState.updateCartQuantity(item.id, item.quantity - 1);
+                                this.render();
+                            }
+                        }, '-');
+                        
+                        const quantity = this.createElement('span', { className: 'px-2 font-bold' }, item.quantity.toString());
+                        
+                        const plusBtn = this.createElement('button', {
+                            className: 'btn btn-secondary',
+                            onclick: () => {
+                                appState.updateCartQuantity(item.id, item.quantity + 1);
+                                this.render();
+                            }
+                        }, '+');
+                        
+                        controls.appendChild(minusBtn);
+                        controls.appendChild(quantity);
+                        controls.appendChild(plusBtn);
+                        
+                        itemDiv.appendChild(info);
+                        itemDiv.appendChild(controls);
+                        content.appendChild(itemDiv);
+                    });
+                    
+                    // 总计
+                    const total = this.createElement('div', { className: 'border-t pt-4 mt-4' });
+                    const totalText = this.createElement('div', { className: 'text-xl font-bold text-center' }, 
+                        `总计: RM ${appState.getCartTotal().toFixed(2)}`);
+                    const checkoutBtn = this.createElement('button', {
+                        className: 'btn btn-success w-full mt-4',
+                        onclick: () => this.showCheckout()
+                    }, '结账');
+                    
+                    total.appendChild(totalText);
+                    total.appendChild(checkoutBtn);
+                    content.appendChild(total);
+                }
+                
+                sidebar.appendChild(header);
+                sidebar.appendChild(content);
+                
+                document.body.appendChild(overlay);
+                document.body.appendChild(sidebar);
+                
+                return sidebar;
+            }
+            
+            showCheckout() {
+                // 简单的结账流程
+                const phone = prompt('请输入您的手机号码:');
+                if (!phone) return;
+                
+                const address = prompt('请输入配送地址:');
+                if (!address) return;
+                
+                // 生成 WhatsApp 订单信息
+                let message = '🍽️ 锋味派美食团购订单\\n\\n';
+                message += `📱 手机号: ${phone}\\n`;
+                message += `📍 地址: ${address}\\n\\n`;
+                message += '📦 订购商品:\\n';
+                
+                appState.cart.forEach(item => {
+                    message += `• ${item.name} x${item.quantity} = RM ${(item.price * item.quantity).toFixed(2)}\\n`;
+                });
+                
+                message += `\\n💰 总计: RM ${appState.getCartTotal().toFixed(2)}`;
+                
+                // 打开 WhatsApp
+                const whatsappUrl = `https://wa.me/${AppConfig.WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+                window.open(whatsappUrl, '_blank');
+                
+                // 清空购物车
+                appState.setState({ cart: [] });
+                this.setState({ showCart: false });
+            }
+        }
+
+        // 管理员界面组件
+        class AdminPanel extends Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    currentTab: 'dashboard',
+                    products: [],
+                    orders: [],
+                    members: [],
+                    showAddProduct: false
+                };
+            }
+            
+            async componentDidMount() {
+                await this.loadData();
+            }
+            
+            async loadData() {
+                try {
+                    const [products, orders, members] = await Promise.all([
+                        supabase.from('products').select().execute(),
+                        supabase.from('orders').select().execute(),
+                        supabase.from('members').select().execute()
+                    ]);
+                    
+                    this.setState({
+                        products: products.data || [],
+                        orders: orders.data || [],
+                        members: members.data || []
+                    });
+                } catch (error) {
+                    console.error('加载数据失败:', error);
+                }
+            }
+            
+            render() {
+                const container = this.createElement('div', { className: 'min-h-screen bg-gray-100' });
+                
+                // 顶部导航
+                const navbar = this.createElement('nav', { className: 'navbar' });
+                const navContainer = this.createElement('div', { className: 'container flex justify-between items-center' });
+                
+                const title = this.createElement('h1', { className: 'text-2xl font-bold' }, '🔧 管理后台');
+                const logoutBtn = this.createElement('button', {
+                    className: 'btn btn-secondary',
+                    onclick: () => appState.setState({ currentView: 'customer' })
+                }, '退出管理');
+                
+                navContainer.appendChild(title);
+                navContainer.appendChild(logoutBtn);
+                navbar.appendChild(navContainer);
+                
+                // 标签页导航
+                const tabs = this.createElement('div', { className: 'bg-white shadow-sm' });
+                const tabsContainer = this.createElement('div', { className: 'container' });
+                const tabsList = this.createElement('div', { className: 'flex gap-4 p-4' });
+                
+                const tabItems = [
+                    { key: 'dashboard', label: '📊 仪表盘' },
+                    { key: 'products', label: '📦 商品管理' },
+                    { key: 'orders', label: '📋 订单管理' },
+                    { key: 'members', label: '👥 会员管理' }
+                ];
+                
+                tabItems.forEach(tab => {
+                    const button = this.createElement('button', {
+                        className: `btn ${this.state.currentTab === tab.key ? 'btn-primary' : 'btn-secondary'}`,
+                        onclick: () => this.setState({ currentTab: tab.key })
+                    }, tab.label);
+                    tabsList.appendChild(button);
+                });
+                
+                tabsContainer.appendChild(tabsList);
+                tabs.appendChild(tabsContainer);
+                
+                // 内容区域
+                const content = this.createElement('div', { className: 'container p-4' });
+                content.appendChild(this.renderTabContent());
+                
+                container.appendChild(navbar);
+                container.appendChild(tabs);
+                container.appendChild(content);
+                
+                return container;
+            }
+            
+            renderTabContent() {
+                switch (this.state.currentTab) {
+                    case 'dashboard':
+                        return this.renderDashboard();
+                    case 'products':
+                        return this.renderProducts();
+                    case 'orders':
+                        return this.renderOrders();
+                    case 'members':
+                        return this.renderMembers();
+                    default:
+                        return this.createElement('div', {}, '页面未找到');
+                }
+            }
+            
+            renderDashboard() {
+                const dashboard = this.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-3 gap-6' });
+                
+                // 统计卡片
+                const stats = [
+                    { label: '商品总数', value: this.state.products.length, color: 'bg-blue-600' },
+                    { label: '订单总数', value: this.state.orders.length, color: 'bg-green-600' },
+                    { label: '会员总数', value: this.state.members.length, color: 'bg-red-600' }
+                ];
+                
+                stats.forEach(stat => {
+                    const card = this.createElement('div', { className: `card p-6 ${stat.color} text-white` });
+                    const label = this.createElement('div', { className: 'text-sm opacity-90' }, stat.label);
+                    const value = this.createElement('div', { className: 'text-3xl font-bold mt-2' }, stat.value.toString());
+                    card.appendChild(label);
+                    card.appendChild(value);
+                    dashboard.appendChild(card);
+                });
+                
+                return dashboard;
+            }
+            
+            renderProducts() {
+                const section = this.createElement('div', {});
+                
+                // 添加商品按钮
+                const addBtn = this.createElement('button', {
+                    className: 'btn btn-primary mb-4',
+                    onclick: () => this.setState({ showAddProduct: true })
+                }, '+ 添加商品');
+                section.appendChild(addBtn);
+                
+                // 商品列表
+                const grid = this.createElement('div', { className: 'grid gap-4' });
+                
+                this.state.products.forEach(product => {
+                    const card = this.createElement('div', { className: 'card p-4 flex justify-between items-center' });
+                    
+                    const info = this.createElement('div', {});
+                    const name = this.createElement('div', { className: 'font-bold' }, product.name);
+                    const price = this.createElement('div', { className: 'text-red-600' }, `RM ${product.price}`);
+                    info.appendChild(name);
+                    info.appendChild(price);
+                    
+                    const actions = this.createElement('div', { className: 'flex gap-2' });
+                    const editBtn = this.createElement('button', { className: 'btn btn-secondary' }, '编辑');
+                    const deleteBtn = this.createElement('button', { 
+                        className: 'btn btn-secondary',
+                        onclick: () => this.deleteProduct(product.id)
+                    }, '删除');
+                    
+                    actions.appendChild(editBtn);
+                    actions.appendChild(deleteBtn);
+                    
+                    card.appendChild(info);
+                    card.appendChild(actions);
+                    grid.appendChild(card);
+                });
+                
+                section.appendChild(grid);
+                
+                // 添加商品模态框
+                if (this.state.showAddProduct) {
+                    const modal = this.createAddProductModal();
+                    section.appendChild(modal);
+                }
+                
+                return section;
+            }
+            
+            renderOrders() {
+                const section = this.createElement('div', {});
+                const title = this.createElement('h2', { className: 'text-2xl font-bold mb-4' }, '订单管理');
+                section.appendChild(title);
+                
+                if (this.state.orders.length === 0) {
+                    const empty = this.createElement('div', { className: 'text-center text-gray-600 p-8' }, '暂无订单');
+                    section.appendChild(empty);
+                } else {
+                    const list = this.createElement('div', { className: 'space-y-4' });
+                    this.state.orders.forEach(order => {
+                        const card = this.createElement('div', { className: 'card p-4' });
+                        const content = this.createElement('div', {}, 
+                            `订单 #${order.id} - ${order.customer_phone} - RM ${order.total_amount}`);
+                        card.appendChild(content);
+                        list.appendChild(card);
+                    });
+                    section.appendChild(list);
+                }
+                
+                return section;
+            }
+            
+            renderMembers() {
+                const section = this.createElement('div', {});
+                const title = this.createElement('h2', { className: 'text-2xl font-bold mb-4' }, '会员管理');
+                section.appendChild(title);
+                
+                if (this.state.members.length === 0) {
+                    const empty = this.createElement('div', { className: 'text-center text-gray-600 p-8' }, '暂无会员');
+                    section.appendChild(empty);
+                } else {
+                    const list = this.createElement('div', { className: 'space-y-4' });
+                    this.state.members.forEach(member => {
+                        const card = this.createElement('div', { className: 'card p-4' });
+                        const content = this.createElement('div', {}, 
+                            `${member.phone} - 积分: ${member.points || 0}`);
+                        card.appendChild(content);
+                        list.appendChild(card);
+                    });
+                    section.appendChild(list);
+                }
+                
+                return section;
+            }
+            
+            createAddProductModal() {
+                const modal = this.createElement('div', { className: 'modal active' });
+                const content = this.createElement('div', { className: 'modal-content p-6' });
+                
+                const title = this.createElement('h2', { className: 'text-2xl font-bold mb-4' }, '添加商品');
+                
+                const form = this.createElement('form', {
+                    onsubmit: (e) => {
+                        e.preventDefault();
+                        this.handleAddProduct(e);
+                    }
+                });
+                
+                const nameInput = this.createElement('input', {
+                    type: 'text',
+                    placeholder: '商品名称',
+                    className: 'form-input mb-4',
+                    required: true
+                });
+                
+                const priceInput = this.createElement('input', {
+                    type: 'number',
+                    step: '0.01',
+                    placeholder: '价格',
+                    className: 'form-input mb-4',
+                    required: true
+                });
+                
+                const categorySelect = this.createElement('select', { className: 'form-input mb-4' });
+                ['预售商品', '现货商品', '调料', '其他'].forEach(cat => {
+                    const option = this.createElement('option', { value: cat }, cat);
+                    categorySelect.appendChild(option);
+                });
+                
+                const stockInput = this.createElement('input', {
+                    type: 'number',
+                    placeholder: '库存数量',
+                    className: 'form-input mb-4'
+                });
+                
+                const buttons = this.createElement('div', { className: 'flex gap-4' });
+                const submitBtn = this.createElement('button', {
+                    type: 'submit',
+                    className: 'btn btn-success'
+                }, '添加');
+                
+                const cancelBtn = this.createElement('button', {
+                    type: 'button',
+                    className: 'btn btn-secondary',
+                    onclick: () => this.setState({ showAddProduct: false })
+                }, '取消');
+                
+                buttons.appendChild(submitBtn);
+                buttons.appendChild(cancelBtn);
+                
+                form.appendChild(nameInput);
+                form.appendChild(priceInput);
+                form.appendChild(categorySelect);
+                form.appendChild(stockInput);
+                form.appendChild(buttons);
+                
+                content.appendChild(title);
+                content.appendChild(form);
+                modal.appendChild(content);
+                
+                return modal;
+            }
+            
+            async handleAddProduct(e) {
+                const formData = new FormData(e.target);
+                const product = {
+                    name: e.target[0].value,
+                    price: parseFloat(e.target[1].value),
+                    category: e.target[2].value,
+                    stock_quantity: parseInt(e.target[3].value) || 0
+                };
+                
+                try {
+                    const { data, error } = await supabase.from('products').insert(product);
+                    if (error) throw error;
+                    
+                    await this.loadData();
+                    this.setState({ showAddProduct: false });
+                } catch (error) {
+                    alert('添加商品失败: ' + error.message);
+                }
+            }
+            
+            async deleteProduct(productId) {
+                if (!confirm('确定要删除这个商品吗？')) return;
+                
+                try {
+                    const { error } = await supabase.from('products').eq('id', productId).delete();
+                    if (error) throw error;
+                    
+                    await this.loadData();
+                } catch (error) {
+                    alert('删除商品失败: ' + error.message);
+                }
+            }
+        }
+
+        // 登录组件
+        class LoginPage extends Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    password: '',
+                    showPassword: false,
+                    error: ''
+                };
+            }
+            
+            handleLogin(e) {
+                e.preventDefault();
+                if (this.state.password === AppConfig.ADMIN_PASSWORD) {
+                    appState.setState({ currentView: 'admin' });
+                } else {
+                    this.setState({ error: '密码错误' });
+                }
+            }
+            
+            render() {
+                const container = this.createElement('div', { className: 'min-h-screen flex items-center justify-center bg-gray-100' });
+                const card = this.createElement('div', { className: 'card p-8 w-full max-w-md' });
+                
+                const title = this.createElement('h1', { className: 'text-2xl font-bold text-center mb-6' }, '🔐 管理员登录');
+                
+                const form = this.createElement('form', {
+                    onsubmit: (e) => this.handleLogin(e)
+                });
+                
+                const passwordGroup = this.createElement('div', { className: 'relative mb-4' });
+                const passwordInput = this.createElement('input', {
+                    type: this.state.showPassword ? 'text' : 'password',
+                    placeholder: '请输入管理员密码',
+                    className: 'form-input pr-10',
+                    value: this.state.password,
+                    oninput: (e) => this.setState({ password: e.target.value, error: '' }),
+                    required: true
+                });
+                
+                const toggleBtn = this.createElement('button', {
+                    type: 'button',
+                    className: 'absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500',
+                    onclick: () => this.setState({ showPassword: !this.state.showPassword })
+                }, this.state.showPassword ? '🙈' : '👁️');
+                
+                passwordGroup.appendChild(passwordInput);
+                passwordGroup.appendChild(toggleBtn);
+                
+                if (this.state.error) {
+                    const error = this.createElement('div', { className: 'text-red-600 text-sm mb-4' }, this.state.error);
+                    form.appendChild(error);
+                }
+                
+                const submitBtn = this.createElement('button', {
+                    type: 'submit',
+                    className: 'btn btn-primary w-full mb-4'
+                }, '登录');
+                
+                const backBtn = this.createElement('button', {
+                    type: 'button',
+                    className: 'btn btn-secondary w-full',
+                    onclick: () => appState.setState({ currentView: 'customer' })
+                }, '返回首页');
+                
+                form.appendChild(passwordGroup);
+                form.appendChild(submitBtn);
+                form.appendChild(backBtn);
+                
+                card.appendChild(title);
+                card.appendChild(form);
+                container.appendChild(card);
+                
+                return container;
+            }
+        }
+
+        // 主应用组件
+        class App extends Component {
+            constructor() {
+                super();
+                this.unsubscribe = appState.subscribe(() => this.render());
+            }
+            
+            render() {
+                const root = document.getElementById('root');
+                root.innerHTML = '';
+                
+                let page;
+                switch (appState.currentView) {
+                    case 'login':
+                        page = new LoginPage();
+                        break;
+                    case 'admin':
+                        page = new AdminPanel();
+                        break;
+                    default:
+                        page = new CustomerPage();
+                }
+                
+                const pageElement = page.render();
+                if (page.componentDidMount) {
+                    page.componentDidMount();
+                }
+                
+                root.appendChild(pageElement);
+                
+                // 添加管理员入口按钮
+                if (appState.currentView === 'customer') {
+                    const adminBtn = this.createElement('button', {
+                        className: 'fixed bottom-4 right-4 btn btn-secondary opacity-50 hover:opacity-100',
+                        onclick: () => appState.setState({ currentView: 'login' })
+                    }, '🔧 管理');
+                    root.appendChild(adminBtn);
+                }
+            }
+        }
+
+        // 应用初始化
+        function initializeApp() {
+            console.log('✅ 锋味派美食团购系统初始化完成');
+            console.log('🔧 所有功能已集成到单文件版本');
+            
+            // 隐藏加载指示器
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.style.display = 'none';
+            }
+            
+            // 启动应用
+            const app = new App();
+            app.render();
+        }
+
+        // 等待页面加载完成
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
+    </script>
+</body>
+</html>
